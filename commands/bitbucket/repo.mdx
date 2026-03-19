@@ -1,0 +1,89 @@
+---
+title: "cops bitbucket repo"
+description: "Fetch Bitbucket repository details by project key and repository slug."
+---
+
+The `cops bitbucket repo` commands let you inspect Bitbucket repositories. They call the Bitbucket REST API (`/rest/api/1.0`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bitbucket repo get" defaultOpen>
+
+    Fetch details for a single Bitbucket repository.
+
+    **Alias:** `cops bitbucket repo details`
+
+    ## Usage
+
+    ```bash
+    cops bitbucket repo get --project <projectKey> --repo <repoSlug> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string" required>
+      Bitbucket project key (e.g. `MYPROJ`).
+    </ParamField>
+
+    <ParamField path="--repo" type="string" required>
+      Bitbucket repository slug (e.g. `my-service`).
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `name`, `slug`, `projectKey`, `projectName`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get repository details
+    cops bitbucket repo get --project MYPROJ --repo my-service
+    ```
+
+    ```bash JSON output
+    cops bitbucket repo get --project MYPROJ --repo my-service --output json
+    ```
+
+    ```bash Use an alias
+    cops bitbucket repo details --project MYPROJ --repo my-service
+    ```
+
+    ```bash Override profile
+    cops bitbucket repo get --project MYPROJ --repo my-service --profile dc-staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    id   name        slug        projectKey  projectName
+    ───  ──────────  ──────────  ──────────  ──────────────
+    42   my-service  my-service  MYPROJ      My Project
+    ```
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bitbucket branch" icon="git-branch" href="/commands/bitbucket/branch">
+    List branches and check whether a branch exists.
+  </Card>
+  <Card title="cops bitbucket commits" icon="git-commit" href="/commands/bitbucket/commits">
+    List commits and inspect build statuses.
+  </Card>
+</Columns>

@@ -1,0 +1,83 @@
+---
+title: "cops ask"
+description: "Send a natural-language prompt to the Devin CLI and print its response in the terminal."
+---
+
+`cops ask` forwards a free-text question or instruction to the [Devin CLI](https://devin.ai) and streams the response back to your terminal. Use it to query cops-managed data or get guidance without remembering exact command syntax.
+
+<Warning>
+Devin CLI is **optional**. All other cops commands work without it. `cops ask` fails with an error if `devin` is not available on your `PATH`.
+</Warning>
+
+## Usage
+
+```bash
+cops ask [--yes] "<prompt>"
+```
+
+Wrap multi-word prompts in quotes.
+
+## Arguments
+
+<ParamField query="prompt" type="string" required>
+  The natural-language prompt to send to Devin CLI. Wrap in quotes when it contains spaces or special characters.
+</ParamField>
+
+## Flags
+
+<ParamField query="--yes" type="boolean" default="false">
+  Skip confirmation and run Devin with **dangerous** permission mode, which grants full system access. Equivalent to passing `--permission-mode dangerous` to the Devin CLI directly.
+
+  Short form: `-y`
+</ParamField>
+
+## Environment variables
+
+| Variable | Description |
+| --- | --- |
+| `COPS_DEVIN_PERMISSION_MODE` | Override the Devin permission mode. Accepts any value that Devin CLI accepts for `--permission-mode` (e.g. `auto`, `dangerous`). Takes priority over the `--yes` flag. |
+
+## Examples
+
+<CodeGroup>
+
+```bash Query Jira issue status
+cops ask "What is the status of story ABC-123?"
+```
+
+```bash Check release readiness
+cops ask "Is project ABC ready to release fixVersion 2026-04-17?"
+```
+
+```bash Explain a gate failure
+cops ask "Why did the bamboo-latest-build gate fail for project backend-service?"
+```
+
+```bash Run with dangerous permission mode
+cops ask -y "Generate a release evidence report for project backend-service and save it to ./output"
+```
+
+</CodeGroup>
+
+## How it works
+
+cops prepends a system preamble to your prompt that instructs Devin to run in non-interactive mode, avoid follow-up questions, and return the final answer as Markdown. The response is rendered in the terminal.
+
+Nested invocations are blocked — if Devin attempts to call `cops ask` from within a `cops ask` session, the command exits with an error. Use specific `cops <topic> <command>` commands instead.
+
+## Notes
+
+<Note>
+Install Devin CLI and ensure the `devin` binary is on your `PATH` before using `cops ask`. All other cops commands are fully independent and do not require Devin.
+</Note>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Set up cops and optional integrations.
+  </Card>
+  <Card title="auth login" icon="key" href="/commands/auth/login">
+    Configure auth profiles for product commands.
+  </Card>
+</Columns>

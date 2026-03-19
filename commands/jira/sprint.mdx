@@ -1,0 +1,221 @@
+---
+title: "cops jira sprint"
+description: "List active and historical sprints for a board, and fetch all issues within a sprint."
+---
+
+The `cops jira sprint` commands operate on Jira Agile sprints. They call the Jira Agile REST API (`/rest/agile/1.0`). You need a board ID for most commands — use `cops jira board lookup` to find it.
+
+<AccordionGroup>
+
+  <Accordion title="cops jira sprint active" defaultOpen>
+
+    List all currently active sprints for a board.
+
+    ## Usage
+
+    ```bash
+    cops jira sprint active --board <boardId> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--board" type="number" required>
+      Board ID. Use `cops jira board lookup` to find it.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `name`, `state`, `startDate`, `endDate`, `goal`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get active sprints
+    cops jira sprint active --board 14
+    ```
+
+    ```bash JSON output
+    cops jira sprint active --board 14 --output json
+    ```
+
+    ```bash Override profile
+    cops jira sprint active --board 14 --profile dc-staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    id  name      state   startDate   endDate     goal
+    ──  ────────  ──────  ──────────  ──────────  ──────────────────────────────
+    42  Sprint 14 active  2026-03-10  2026-03-24  Complete authentication module
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops jira sprint list">
+
+    List sprints for a board filtered by state. Use this to find closed sprints for retrospective data or future sprints for planning.
+
+    **Alias:** `cops jira sprint ls`
+
+    ## Usage
+
+    ```bash
+    cops jira sprint list --board <boardId> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--board" type="number" required>
+      Board ID. Use `cops jira board lookup` to find it.
+    </ParamField>
+
+    <ParamField path="--state" type="string" default="active">
+      Sprint state to filter by. One of `active`, `future`, or `closed`.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="50">
+      Maximum number of sprints to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `name`, `state`, `startDate`, `endDate`, `completeDate`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash List active sprints
+    cops jira sprint list --board 14
+    ```
+
+    ```bash List closed sprints
+    cops jira sprint list --board 14 --state closed
+    ```
+
+    ```bash List future sprints
+    cops jira sprint list --board 14 --state future
+    ```
+
+    ```bash Return up to 10 closed sprints
+    cops jira sprint list --board 14 --state closed --limit 10
+    ```
+
+    ```bash Use an alias
+    cops jira sprint ls --board 14 --state closed
+    ```
+
+    </CodeGroup>
+
+    ```
+    id  name       state   startDate   endDate     completeDate
+    ──  ─────────  ──────  ──────────  ──────────  ────────────
+    42  Sprint 14  active  2026-03-10  2026-03-24
+    41  Sprint 13  closed  2026-02-24  2026-03-10  2026-03-10
+    40  Sprint 12  closed  2026-02-10  2026-02-24  2026-02-24
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops jira sprint issues">
+
+    List all issues in a given sprint by sprint ID.
+
+    ## Usage
+
+    ```bash
+    cops jira sprint issues --sprint <sprintId> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--sprint" type="number" required>
+      Sprint ID. Use `cops jira sprint list` or `cops jira sprint active` to find it.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="100">
+      Maximum number of issues to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `key`, `summary`, `status`, `assignee`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get issues in a sprint
+    cops jira sprint issues --sprint 42
+    ```
+
+    ```bash JSON output
+    cops jira sprint issues --sprint 42 --output json
+    ```
+
+    ```bash Increase the limit
+    cops jira sprint issues --sprint 42 --limit 200
+    ```
+
+    </CodeGroup>
+
+    ```
+    key      summary                          status       assignee
+    ───────  ───────────────────────────────  ───────────  ─────────────
+    ABC-123  Allow users to reset password    In Progress  Alice Example
+    ABC-119  Add rate limiting to login API   To Do        Bob Example
+    ABC-101  Fix null pointer on search page  Done         Unassigned
+    ```
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops jira board" icon="layout-dashboard" href="/commands/jira/board">
+    Find the board ID needed for sprint commands.
+  </Card>
+  <Card title="cops jira issue" icon="ticket" href="/commands/jira/issue">
+    Inspect individual issues or search by JQL.
+  </Card>
+</Columns>

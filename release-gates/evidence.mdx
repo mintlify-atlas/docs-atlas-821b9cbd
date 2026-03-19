@@ -1,0 +1,292 @@
+---
+title: 'Release evidence'
+description: 'Generate, validate, diff, and trend release evidence JSON artifacts for compliance and audit.'
+---
+
+Release evidence artifacts are versioned JSON snapshots of gate evaluation results. Each artifact records which gates were checked, what they found, whether they passed or failed, and when the check ran. These files serve as auditable proof of release readiness and can be archived, diffed across releases, and analyzed for trends over time.
+
+All evidence commands use the `schemaVersion: "v1"` contract, making evidence files stable inputs for downstream scripts and compliance workflows.
+
+## Evidence JSON structure
+
+An evidence file produced by `cops release evidence generate` has this top-level shape:
+
+```json
+{
+  "schemaVersion": "v1",
+  "project": "my-service",
+  "generatedAt": "2026-04-01T12:00:00.000Z",
+  "overall": "pass",
+  "gateCount": 3,
+  "results": [
+    {
+      "gateId": "jira-stories",
+      "type": "jira-stories-exist",
+      "severity": "high",
+      "owner": "",
+      "team": "",
+      "ticket": "",
+      "slaHours": "",
+      "rawStatus": "pass",
+      "status": "pass",
+      "blocking": false,
+      "waived": false,
+      "waiverExpires": "",
+      "details": "42 stories found"
+    },
+    {
+      "gateId": "release-branch",
+      "type": "bitbucket-release-branch-exists",
+      "severity": "high",
+      "rawStatus": "pass",
+      "status": "pass",
+      "blocking": false,
+      "waiverApplied": false,
+      "details": "Release branch exists"
+    },
+    {
+      "gateId": "bamboo-build",
+      "type": "bamboo-latest-build-success",
+      "severity": "high",
+      "rawStatus": "warn",
+      "status": "fail",
+      "blocking": true,
+      "waiverApplied": false,
+      "details": "MYPROJ-PLAN-42 is FAILED"
+    }
+  ]
+}
+```
+
+**Top-level fields**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `schemaVersion` | string | Always `"v1"`. |
+| `project` | string | Project ID from `cops.project.json`. |
+| `generatedAt` | string | ISO 8601 timestamp when the evidence was generated. |
+| `overall` | string | Aggregate result: `pass`, `warn`, or `fail`. |
+| `gateCount` | number | Number of gate results in `results`. |
+| `results` | array | One entry per evaluated gate. |
+
+**Per-gate result fields**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `gateId` | string | Gate ID from `cops.project.json`. |
+| `type` | string | Gate type. |
+| `severity` | string | `low`, `medium`, `high`, or `critical`. |
+| `rawStatus` | string | Raw evaluation result: `pass`, `warn`, or `fail`. |
+| `status` | string | Effective status after policy: `pass`, `warn`, `fail`, or `waived`. |
+| `blocking` | boolean | `true` when this gate's failure prevents the release. |
+| `waiverApplied` | boolean | `true` when an active waiver suppressed a non-pass result. |
+| `waiverReason` | string | Waiver reason text, when `waiverApplied` is `true`. |
+| `waiverExpires` | string | ISO 8601 waiver expiry, when set. |
+| `details` | string | Human-readable description of what the gate found. |
+| `owner` | string | Optional owner label from gate config. |
+| `team` | string | Optional team label from gate config. |
+| `ticket` | string | Optional reference ticket from gate config. |
+| `slaHours` | number | Optional SLA hours from gate config. |
+
+## Generate → validate → archive workflow
+
+<Steps>
+  <Step title="Generate evidence">
+    Run all enabled gates and write the evidence artifacts to disk.
+
+    ```bash
+    cops release evidence generate --project my-service --outDir output
+    ```
+
+    This produces two files in `output/`:
+    - `release-evidence-my-service.json` — the structured evidence artifact
+    - `release-evidence-my-service.md` — a Markdown table for human review
+
+    The command exits with a non-zero code when any gate is blocking, so it can gate a CI pipeline step directly.
+  </Step>
+
+  <Step title="Validate the evidence contract">
+    Confirm the JSON file conforms to the `schemaVersion: "v1"` contract before archiving.
+
+    ```bash
+    cops release evidence validate --file output/release-evidence-my-service.json --strict
+    ```
+
+    With `--strict`, the validator also checks for unknown top-level and per-gate result keys, and enforces the `low|medium|high|critical` severity enum. Without `--strict`, only the required fields and types are checked.
+  </Step>
+
+  <Step title="Archive or hand off">
+    Store the validated evidence file in your artifact repository, compliance storage, or CI artifact archive. The file is stable, self-describing, and human-readable.
+
+    ```bash
+    # Example: copy to a dated archive directory
+    cp output/release-evidence-my-service.json \
+       archive/releases/2026-04-01/release-evidence-my-service.json
+    ```
+  </Step>
+</Steps>
+
+## cops release evidence generate
+
+Evaluates all enabled gates for the project and writes JSON and Markdown evidence artifacts.
+
+```bash
+cops release evidence generate [--project <id>] [--outDir <dir>]
+```
+
+**Flags**
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--project` | default project | Project key from `cops.project.json`. |
+| `--outDir` | `output` | Directory to write evidence files into. Created if it does not exist. |
+| `--output` | `table` | Output format: `table`, `json`, or `markdown`. Controls the command summary, not the artifact format. |
+| `--profile` | active profile | Named auth profile to use. |
+| `--insecure` | `false` | Disable TLS certificate validation. |
+
+**Output files**
+
+| File | Description |
+| --- | --- |
+| `release-evidence-<project>.json` | Structured evidence artifact (schemaVersion v1). |
+| `release-evidence-<project>.md` | Markdown table for human review in pull requests or wikis. |
+
+For the `default` project (legacy `release` key), files are named `release-evidence.json` and `release-evidence.md` without a suffix.
+
+<CodeGroup>
+
+```bash with project flag
+cops release evidence generate --project my-service --outDir output
+```
+
+```bash with json output summary
+cops release evidence generate --project my-service --outDir output --output json
+```
+
+```bash with insecure TLS
+cops release evidence generate --project my-service --outDir output --insecure
+```
+
+</CodeGroup>
+
+## cops release evidence validate
+
+Validates that an evidence JSON file conforms to the `schemaVersion: "v1"` contract. Accepts a single file or a directory of evidence files.
+
+```bash
+cops release evidence validate --file <path> [--strict]
+cops release evidence validate --dir <path> [--prefix <prefix>] [--strict]
+```
+
+**Flags**
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--file` | — | Path to a single evidence JSON file. Mutually exclusive with `--dir`. |
+| `--dir` | — | Directory containing evidence JSON files. Mutually exclusive with `--file`. |
+| `--prefix` | `release-evidence` | Filename prefix filter when using `--dir`. |
+| `--strict` | `false` | Enable strict validation: checks unknown keys and enforces severity enums. |
+| `--output` | `table` | Output format for the validation report. |
+
+**What is validated**
+
+Base validation (always applied):
+- `schemaVersion` must be `"v1"`
+- `generatedAt` must be a valid ISO datetime
+- `overall` must be `pass`, `warn`, or `fail`
+- `results` must be an array; `gateCount` must equal `results.length`
+- Each result must have `gateId`, `type`, `severity`, `rawStatus`, `status`, `blocking`, and `details`
+- `rawStatus` must be `pass|warn|fail`; `status` must be `pass|warn|fail|waived`
+- `blocking` must be a boolean
+
+Strict validation (with `--strict`):
+- No unknown top-level keys beyond the allowed set
+- No unknown per-gate result keys
+- `severity` must be `low|medium|high|critical`
+
+<CodeGroup>
+
+```bash validate single file
+cops release evidence validate --file output/release-evidence-my-service.json
+```
+
+```bash validate with strict mode
+cops release evidence validate --file output/release-evidence-my-service.json --strict
+```
+
+```bash validate all files in a directory
+cops release evidence validate --dir archive/releases/2026-04-01
+```
+
+</CodeGroup>
+
+## cops release evidence diff
+
+Compares two evidence files and reports changes in overall status, gate statuses, and blocking flags. Exits with a non-zero code when any differences are found.
+
+```bash
+cops release evidence diff --previous <path> --current <path>
+```
+
+**Flags**
+
+| Flag | Required | Description |
+| --- | --- | --- |
+| `--previous` | Yes | Path to the previous release-evidence JSON file. |
+| `--current` | Yes | Path to the current release-evidence JSON file. |
+| `--output` | No | Output format: `table`, `json`, or `markdown`. |
+
+**Change kinds reported**
+
+| Kind | Description |
+| --- | --- |
+| `overall` | The top-level `overall` status changed between the two files. |
+| `status_change` | A gate's effective `status` changed (e.g. `pass` → `fail`). |
+| `blocking_change` | A gate's `blocking` flag changed. |
+| `added_gate` | A gate result is present in the current file but was absent in the previous file. |
+| `removed_gate` | A gate result is present in the previous file but absent in the current file. |
+
+```bash
+cops release evidence diff \
+  --previous archive/2026-03-15/release-evidence-my-service.json \
+  --current output/release-evidence-my-service.json
+```
+
+<Tip>
+Run `cops release evidence diff` in CI to catch regressions between release candidates. A non-zero exit code means something changed and should be reviewed.
+</Tip>
+
+## cops release evidence trend
+
+Analyzes a directory of evidence JSON files, sorts them by `generatedAt`, and summarizes pass/warn/fail/waived/blocking counts per file. Useful for tracking release health over time or identifying recurring gate failures.
+
+```bash
+cops release evidence trend [--dir <dir>] [--prefix <prefix>] [--limit <n>]
+```
+
+**Flags**
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--dir` | `output` | Directory containing evidence JSON files to analyze. |
+| `--prefix` | `release-evidence` | Filename prefix filter. |
+| `--limit` | `20` | Maximum number of files to analyze, taken from the most recent by `generatedAt`. |
+| `--output` | `table` | Output format: `table`, `json`, or `markdown`. |
+
+The command exits based on the most recent evidence file in the set:
+- Non-zero (blocking) when the latest file has any blocking gate.
+- Warning exit code when the latest file has any `warn` or `fail` results.
+- Zero when the latest file is fully green.
+
+```bash
+# Analyze the last 10 evidence files in an archive directory
+cops release evidence trend \
+  --dir archive/releases \
+  --prefix release-evidence-my-service \
+  --limit 10 \
+  --output json
+```
+
+<Note>
+Files that cannot be parsed or have no `generatedAt` timestamp are silently skipped. Only valid evidence JSON files contribute to the trend output.
+</Note>

@@ -1,0 +1,65 @@
+---
+title: "cops auth profiles"
+description: "List all configured auth profiles and highlight the currently active one."
+---
+
+`cops auth profiles` prints every saved profile to the terminal. The active profile is marked with an asterisk (`*`). All other profiles are prefixed with a space.
+
+## Usage
+
+```bash
+cops auth profiles
+```
+
+This command takes no flags or arguments.
+
+## Output
+
+Each line shows one profile name. The currently active profile has a `*` prefix:
+
+```
+* dc-prod
+  dc-staging
+  local-dev
+```
+
+In this example, `dc-prod` is the active profile. Commands that require authentication will use its credentials unless you specify a different profile with `--profile`.
+
+If no profiles have been configured yet, the command prints:
+
+```
+No profiles configured. Run: cops auth login
+```
+
+## Examples
+
+<CodeGroup>
+
+```bash List all profiles
+cops auth profiles
+```
+
+</CodeGroup>
+
+## Notes
+
+<Note>
+The active profile is stored in `config.json` under the `currentProfile` key. Running `cops auth login` sets the active profile automatically. Use `cops auth use <name>` to switch between existing profiles.
+</Note>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops auth login" icon="key" href="/commands/auth/login">
+    Create or update a profile with the interactive wizard.
+  </Card>
+  <Card title="cops auth use" icon="toggle-right" href="/commands/auth/use">
+    Switch the active profile.
+  </Card>
+  <Card title="cops auth logout" icon="log-out" href="/commands/auth/logout">
+    Unset the active profile without deleting it.
+  </Card>
+  <Card title="cops auth delete" icon="trash" href="/commands/auth/delete">
+    Permanently delete a profile.
+  </Card>
+</Columns>

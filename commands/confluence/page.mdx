@@ -1,0 +1,444 @@
+---
+title: "cops confluence page"
+description: "Fetch Confluence pages by ID or title, retrieve content metadata, search by CQL, check freshness, and run release-doc health checks."
+---
+
+The `cops confluence page` commands let you inspect Confluence pages and validate their readiness for release documentation. They call the Confluence REST API v2 (`/rest/api/content`).
+
+<AccordionGroup>
+
+  <Accordion title="cops confluence page get" defaultOpen>
+
+    Fetch details for a single Confluence page by its numeric page ID.
+
+    **Alias:** `cops confluence page details`
+
+    ## Usage
+
+    ```bash
+    cops confluence page get <pageId> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `pageId` | Yes | Numeric Confluence page ID |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `title`, `type`, `spaceKey`, `spaceName`, `version`, `updatedAt`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get a page
+    cops confluence page get 123456789
+    ```
+
+    ```bash JSON output
+    cops confluence page get 123456789 --output json
+    ```
+
+    ```bash Use an alias
+    cops confluence page details 123456789
+    ```
+
+    ```bash Override profile
+    cops confluence page get 123456789 --profile staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    id           title              type  spaceKey  spaceName         version  updatedAt
+    ───────────  ─────────────────  ────  ────────  ────────────────  ───────  ────────────────────
+    123456789    Release Notes v2   page  OPS       Operations Space  4        2026-03-15T10:22:00Z
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops confluence page content">
+
+    Fetch content metadata for a page by its numeric page ID. Returns body size and ancestor count in addition to standard page fields.
+
+    ## Usage
+
+    ```bash
+    cops confluence page content <pageId> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `pageId` | Yes | Numeric Confluence page ID |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `title`, `spaceKey`, `version`, `updatedAt`, `bodyLength`, `ancestorCount`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get content metadata
+    cops confluence page content 123456789
+    ```
+
+    ```bash Markdown output
+    cops confluence page content 123456789 --output markdown
+    ```
+
+    </CodeGroup>
+
+    ```
+    id           title              spaceKey  version  updatedAt             bodyLength  ancestorCount
+    ───────────  ─────────────────  ────────  ───────  ────────────────────  ──────────  ─────────────
+    123456789    Release Notes v2   OPS       4        2026-03-15T10:22:00Z  8420        2
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops confluence page by-title">
+
+    Find a Confluence page by its space key and exact title.
+
+    **Alias:** `cops confluence page title`
+
+    ## Usage
+
+    ```bash
+    cops confluence page by-title --space <spaceKey> --title <title> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--space" type="string" required>
+      Confluence space key (e.g. `OPS`, `ENG`).
+    </ParamField>
+
+    <ParamField path="--title" type="string" required>
+      Exact page title to search for.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `title`, `type`, `spaceKey`, `spaceName`, `version`, `updatedAt`
+
+    If no page matches, the output is empty and the `found` metadata field is `false`.
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Find a page by title
+    cops confluence page by-title --space OPS --title "Release Notes v2"
+    ```
+
+    ```bash JSON output
+    cops confluence page by-title --space OPS --title "Release Notes v2" --output json
+    ```
+
+    ```bash Use an alias
+    cops confluence page title --space OPS --title "Release Notes v2"
+    ```
+
+    </CodeGroup>
+
+    ```
+    id           title              type  spaceKey  spaceName         version  updatedAt
+    ───────────  ─────────────────  ────  ────────  ────────────────  ───────  ────────────────────
+    123456789    Release Notes v2   page  OPS       Operations Space  4        2026-03-15T10:22:00Z
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops confluence page search">
+
+    Search Confluence pages using a CQL (Confluence Query Language) query.
+
+    **Alias:** `cops confluence page find`
+
+    ## Usage
+
+    ```bash
+    cops confluence page search --cql <query> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--cql" type="string" required>
+      CQL query string. See the [Confluence CQL documentation](https://developer.atlassian.com/server/confluence/advanced-searching-using-cql/) for syntax.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="20">
+      Maximum number of pages to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `title`, `type`, `spaceKey`, `version`, `updatedAt`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Search by space and label
+    cops confluence page search --cql "space = OPS AND label = release-notes"
+    ```
+
+    ```bash Search with a higher result limit
+    cops confluence page search --cql "space = ENG AND lastModified >= '2026-01-01'" --limit 50
+    ```
+
+    ```bash JSON output
+    cops confluence page search --cql "title = \"Runbook\"" --output json
+    ```
+
+    ```bash Use an alias
+    cops confluence page find --cql "space = OPS AND type = page"
+    ```
+
+    </CodeGroup>
+
+    ```
+    id           title               type  spaceKey  version  updatedAt
+    ───────────  ──────────────────  ────  ────────  ───────  ────────────────────
+    123456789    Release Notes v2    page  OPS       4        2026-03-15T10:22:00Z
+    987654321    Deployment Runbook  page  OPS       2        2026-03-10T08:05:00Z
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops confluence page freshness">
+
+    Check whether a Confluence page was updated within a maximum number of days. Exits with code `1` if the page is stale.
+
+    ## Usage
+
+    ```bash
+    cops confluence page freshness <pageId> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `pageId` | Yes | Numeric Confluence page ID |
+
+    ## Flags
+
+    <ParamField path="--maxAgeDays" type="number" default="7">
+      Maximum allowed page age in days. The command exits with code `1` if the page is older than this threshold.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `title`, `updatedAt`, `ageDays`, `maxAgeDays`, `fresh`
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | Page is within the age threshold |
+    | `1` | Page is older than `--maxAgeDays` |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Check freshness with default threshold (7 days)
+    cops confluence page freshness 123456789
+    ```
+
+    ```bash Check with a custom threshold
+    cops confluence page freshness 123456789 --maxAgeDays 14
+    ```
+
+    ```bash JSON output
+    cops confluence page freshness 123456789 --maxAgeDays 30 --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    id           title              updatedAt             ageDays  maxAgeDays  fresh
+    ───────────  ─────────────────  ────────────────────  ───────  ──────────  ─────
+    123456789    Release Notes v2   2026-03-15T10:22:00Z  4        7           true
+    ```
+
+    <Tip>
+      Use `cops confluence page freshness` in CI pipelines to gate a release on recently updated documentation.
+    </Tip>
+
+  </Accordion>
+
+  <Accordion title="cops confluence page checks">
+
+    Run a suite of release-doc health checks against a Confluence page: verifies the page exists, confirms required section headings are present, and checks that the page is not stale. Exits with code `1` if any check produces a `warn` or `fail` result.
+
+    ## Usage
+
+    ```bash
+    cops confluence page checks --space <spaceKey> --title <title> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--space" type="string" required>
+      Confluence space key (e.g. `OPS`).
+    </ParamField>
+
+    <ParamField path="--title" type="string" required>
+      Exact title of the Confluence page to check.
+    </ParamField>
+
+    <ParamField path="--requiredSections" type="string" default="">
+      Comma-separated list of text fragments or section headings that must appear in the page body (case-insensitive). For example: `"Overview,Rollback Steps,Sign-off"`.
+    </ParamField>
+
+    <ParamField path="--maxAgeDays" type="number" default="14">
+      Maximum allowed page age in days. Pages older than this threshold produce a `warn` result.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `check`, `status`, `details`
+
+    Each row represents one check. The `status` value is `pass`, `warn`, or `fail`.
+
+    | Check | Description |
+    | --- | --- |
+    | `page_exists` | Verifies the page was found in the given space |
+    | `required_sections` | Verifies all `--requiredSections` fragments appear in the page body |
+    | `page_freshness` | Verifies the page was updated within `--maxAgeDays` |
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | All checks passed |
+    | `1` | One or more checks produced `warn` or `fail` |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Run all checks
+    cops confluence page checks --space OPS --title "Release Notes v2" --requiredSections "Overview,Rollback Steps" --maxAgeDays 7
+    ```
+
+    ```bash Check existence and freshness only
+    cops confluence page checks --space OPS --title "Release Notes v2"
+    ```
+
+    ```bash JSON output for CI
+    cops confluence page checks --space OPS --title "Release Notes v2" --requiredSections "Sign-off" --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    check              status  details
+    ─────────────────  ──────  ───────────────────────────────────────
+    page_exists        pass    Found page 123456789
+    required_sections  pass    All required sections present
+    page_freshness     warn    Page age 18 days exceeds 14
+    ```
+
+    <Note>
+      If the page is not found, only the `page_exists` check row is emitted and the command exits immediately with code `1`.
+    </Note>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops confluence" icon="book" href="/commands/confluence/overview">
+    Overview of all Confluence commands and common flags.
+  </Card>
+  <Card title="Release gates" icon="shield-check" href="/release-gates/overview">
+    Use page checks as gates in a release workflow.
+  </Card>
+</Columns>

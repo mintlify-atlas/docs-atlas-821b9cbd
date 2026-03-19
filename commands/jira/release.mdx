@@ -1,0 +1,127 @@
+---
+title: "cops jira release"
+description: "Summarise issue status counts for a Jira fixVersion release with minimal API calls."
+---
+
+The `cops jira release` commands give you a quick snapshot of where a release stands by counting issues in each status category and status.
+
+## cops jira release status
+
+Fetch a breakdown of issue statuses for a given `fixVersion` in a Jira project. The command outputs a metric-per-row table showing total issues, status category counts (`To Do`, `In Progress`, `Done`), and individual status counts.
+
+### Usage
+
+```bash
+cops jira release status --fixVersion <version> (--project <key> | --projectName <name>) [flags]
+```
+
+<Warning>
+  You must pass exactly one of `--project` or `--projectName`. Passing both or neither is an error.
+</Warning>
+
+### Flags
+
+<ParamField path="--project" type="string">
+  Jira project key (e.g. `IP`). Use this when you know the key. Exactly one of `--project` or `--projectName` is required.
+</ParamField>
+
+<ParamField path="--projectName" type="string">
+  Jira project name (e.g. `Intranet Portal`). cops resolves the project key by fetching the project list. Exactly one of `--project` or `--projectName` is required.
+</ParamField>
+
+<ParamField path="--fixVersion" type="string" required>
+  Jira `fixVersion` name to report on (e.g. `2026-04-17`).
+</ParamField>
+
+<ParamField path="--pageSize" type="number" default="500">
+  Number of issues to fetch per paginated API request. Increase this to reduce the number of requests for large releases, or decrease it to reduce memory usage.
+</ParamField>
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+</ParamField>
+
+<ParamField path="--profile" type="string">
+  Override the active config profile.
+</ParamField>
+
+### Output rows
+
+The output is a two-column table of `metric` and `value` rows:
+
+| Metric | Description |
+| --- | --- |
+| `project` | Resolved project key |
+| `projectName` | Project name (only present when `--projectName` is used) |
+| `fixVersion` | The fixVersion queried |
+| `releaseState` | `released`, `unreleased`, or `unknown` |
+| `totalIssues` | Total number of matching issues |
+| `statusCategory:To Do` | Count of issues in the To Do category |
+| `statusCategory:In Progress` | Count of issues in the In Progress category |
+| `statusCategory:Done` | Count of issues in the Done category |
+| `status:<name>` | Count of issues in each individual status |
+
+### API call optimization
+
+<Note>
+  This command is designed to avoid N+1 API calls. For a release with up to 500 issues (the default `--pageSize`), it makes exactly **2 API calls**: one to fetch project versions and one to fetch all issues in a single search page. Both requests are made in parallel. For releases with more than `--pageSize` issues, additional paginated requests are made sequentially until all issues are fetched.
+</Note>
+
+When you use `--projectName` instead of `--project`, one additional API call is made to fetch the project list and resolve the project key.
+
+### Examples
+
+<CodeGroup>
+
+```bash Report by project key
+cops jira release status --project IP --fixVersion 2026-04-17
+```
+
+```bash Report by project name
+cops jira release status --projectName "Intranet Portal" --fixVersion 2026-04-17
+```
+
+```bash JSON output
+cops jira release status --project IP --fixVersion 2026-04-17 --output json
+```
+
+```bash Large release — increase page size
+cops jira release status --project IP --fixVersion 2026-04-17 --pageSize 1000
+```
+
+```bash Override profile
+cops jira release status --project IP --fixVersion 2026-04-17 --profile dc-staging
+```
+
+</CodeGroup>
+
+```
+metric                    value
+────────────────────────  ───────────────
+project                   IP
+fixVersion                2026-04-17
+releaseState              unreleased
+totalIssues               47
+statusCategory:To Do      5
+statusCategory:In Progress  8
+statusCategory:Done       34
+status:To Do              5
+status:In Progress        3
+status:In Review          5
+status:Done               34
+```
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops jira issue search" icon="ticket" href="/commands/jira/issue">
+    Run arbitrary JQL searches against your Jira instance.
+  </Card>
+  <Card title="cops jira sprint" icon="list-checks" href="/commands/jira/sprint">
+    List sprint contents and active sprint details.
+  </Card>
+</Columns>

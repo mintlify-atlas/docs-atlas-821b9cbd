@@ -1,0 +1,163 @@
+---
+title: "cops bamboo deploy"
+description: "Inspect Bamboo deployment environments and their recent deployment results."
+---
+
+The `cops bamboo deploy` commands let you inspect Bamboo deployment environments. They call the Bamboo REST API (`/rest/api/latest/deploy/environment`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bamboo deploy env get" defaultOpen>
+
+    Get details for a Bamboo deployment environment by environment ID.
+
+    ## Usage
+
+    ```bash
+    cops bamboo deploy env get --env <environmentId> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--env" type="number" required>
+      Deployment environment ID (integer). Find environment IDs in your Bamboo deployment project configuration.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `name`, `description`, `deploymentProjectId`, `deploymentProjectName`
+
+    | Column | Description |
+    | --- | --- |
+    | `id` | Environment ID |
+    | `name` | Environment name (e.g. `Production`) |
+    | `description` | Environment description |
+    | `deploymentProjectId` | Parent deployment project ID |
+    | `deploymentProjectName` | Parent deployment project name |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get environment details
+    cops bamboo deploy env get --env 12345
+    ```
+
+    ```bash JSON output
+    cops bamboo deploy env get --env 12345 --output json
+    ```
+
+    ```bash Use a specific profile
+    cops bamboo deploy env get --env 12345 --profile staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    id     name        description          deploymentProjectId  deploymentProjectName
+    ─────  ──────────  ───────────────────  ──────────────────  ─────────────────────
+    12345  Production  Production environment  99                My App Deploy
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops bamboo deploy env results">
+
+    List recent deployment results for a Bamboo deployment environment.
+
+    ## Usage
+
+    ```bash
+    cops bamboo deploy env results --env <environmentId> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--env" type="number" required>
+      Deployment environment ID (integer).
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="5">
+      Maximum number of deployment results to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `version`, `state`, `lifeCycle`, `startedAt`, `finishedAt`, `triggeredBy`
+
+    | Column | Description |
+    | --- | --- |
+    | `version` | Deployment version name |
+    | `state` | Deployment state (e.g. `SUCCESS`, `FAILED`) |
+    | `lifeCycle` | Lifecycle state (e.g. `FINISHED`) |
+    | `startedAt` | ISO datetime the deployment started |
+    | `finishedAt` | ISO datetime the deployment finished |
+    | `triggeredBy` | User or system that triggered the deployment |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash List recent deployments
+    cops bamboo deploy env results --env 12345
+    ```
+
+    ```bash Return up to 10 results
+    cops bamboo deploy env results --env 12345 --limit 10
+    ```
+
+    ```bash JSON output
+    cops bamboo deploy env results --env 12345 --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    version   state    lifeCycle  startedAt             finishedAt            triggeredBy
+    ────────  ───────  ─────────  ────────────────────  ────────────────────  ─────────────
+    v1.4.2    SUCCESS  FINISHED   2026-03-19T09:50:00Z  2026-03-19T09:53:14Z  ci-user
+    v1.4.1    SUCCESS  FINISHED   2026-03-18T14:22:00Z  2026-03-18T14:25:01Z  jane.doe
+    ```
+
+    <Tip>
+      Use `cops bamboo deploy env results` in release pipelines to verify that a deployment has reached the required state before promoting to the next environment.
+    </Tip>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bamboo plan" icon="sitemap" href="/commands/bamboo/plan">
+    Fetch plan details and check plan status.
+  </Card>
+  <Card title="cops bamboo build" icon="hammer" href="/commands/bamboo/build">
+    Get the latest build result for a plan.
+  </Card>
+</Columns>

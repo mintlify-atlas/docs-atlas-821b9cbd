@@ -1,0 +1,136 @@
+---
+title: "cops init"
+description: "Generate a cops.project.json release check config template in the global or local config directory."
+---
+
+`cops init` scaffolds a `cops.project.json` file from a built-in template. Use it to quickly get a valid release gate config without writing JSON by hand.
+
+## Usage
+
+```bash
+cops init [--template <template>] [--target <target>] [--defaultProject <id>] [--force]
+```
+
+## Flags
+
+<ParamField query="--template" type="string" default="all">
+  Template profile to generate. Controls which project entries and gates are included in the output file.
+
+  | Value | What it generates |
+  | --- | --- |
+  | `all` | All three templates as separate project entries |
+  | `backend-service` | Server-side service with Jira, Confluence, Bitbucket, and Bamboo gates |
+  | `mobile-app` | Mobile client project with Jira, Bitbucket, and Bamboo gates |
+  | `shared-platform` | Shared platform component with Confluence freshness and dual Bamboo plans |
+</ParamField>
+
+<ParamField query="--target" type="string" default="global">
+  Where to write `cops.project.json`.
+
+  | Value | Path |
+  | --- | --- |
+  | `global` | `~/.config/cops/cops.project.json` (Linux/macOS) or `%APPDATA%\cops\cops.project.json` (Windows) |
+  | `local` | `./cops.project.json` in the current working directory |
+</ParamField>
+
+<ParamField query="--defaultProject" type="string">
+  Override the `defaultProject` field in the generated config. Defaults to the first project key produced by the chosen template.
+</ParamField>
+
+<ParamField query="--force" type="boolean" default="false">
+  Overwrite an existing `cops.project.json` at the target path. Without this flag, the command exits with an error if the file already exists.
+</ParamField>
+
+## Config file precedence
+
+When cops commands look for `cops.project.json`, they check in this order and use the **first file found**:
+
+1. **`COPS_PROJECT_CONFIG` environment variable** — explicit path; takes priority over everything else
+2. **Global config directory** — `~/.config/cops/cops.project.json` (Linux/macOS) or `%APPDATA%\cops\cops.project.json` (Windows)
+3. **Current working directory** — `./cops.project.json`
+
+<Note>
+Set `COPS_PROJECT_CONFIG=/path/to/my-config.json` to point cops at a specific file without moving it or changing the global config.
+</Note>
+
+## Examples
+
+<CodeGroup>
+
+```bash Global backend-service template
+cops init --template backend-service
+```
+
+```bash Local file in the current directory
+cops init --template backend-service --target local
+```
+
+```bash Overwrite an existing config
+cops init --template mobile-app --force
+```
+
+```bash All templates with a custom defaultProject
+cops init --template all --defaultProject backend-service
+```
+
+</CodeGroup>
+
+## Generated file
+
+After running `cops init --template backend-service`, the global config file contains:
+
+```json
+{
+  "defaultProject": "backend-service",
+  "projects": {
+    "backend-service": {
+      "jira": {
+        "projectKey": "SRV",
+        "fixVersion": "2026-03-13",
+        "readyStatuses": ["Ready for Release", "Done", "Closed", "Resolved"]
+      },
+      "confluence": {
+        "requiredPages": [
+          { "spaceKey": "ENG", "title": "Service Deployment Playbook" }
+        ]
+      },
+      "bitbucket": {
+        "projectKey": "SRV",
+        "repo": "service-api",
+        "releaseBranch": "release/2026-03-13"
+      },
+      "bamboo": {
+        "requiredPlans": ["SRV-PLAN"]
+      },
+      "gates": [
+        { "id": "jira-stories",     "type": "jira-stories-exist",              "enabled": true, "severity": "high" },
+        { "id": "confluence-doc",   "type": "confluence-page-exists",          "enabled": true, "severity": "high" },
+        { "id": "release-branch",   "type": "bitbucket-release-branch-exists", "enabled": true, "severity": "high" },
+        { "id": "bamboo-plan",      "type": "bamboo-plan-active",              "enabled": true, "severity": "high" },
+        { "id": "bamboo-latest-build", "type": "bamboo-latest-build-success",  "enabled": true, "severity": "high" }
+      ]
+    }
+  }
+}
+```
+
+Replace the placeholder project keys, repo slugs, plan keys, page titles, and `fixVersion` values with real ones before running release gates.
+
+<Tip>
+Validate your edited config before running checks:
+
+```bash
+cops release policy validate --project backend-service
+```
+</Tip>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Configuration" icon="settings" href="/guides/configuration">
+    Full project config schema, gate fields, and precedence rules.
+  </Card>
+  <Card title="Release check" icon="shield-check" href="/commands/release/check">
+    Run the gates defined in cops.project.json.
+  </Card>
+</Columns>

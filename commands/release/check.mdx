@@ -1,0 +1,127 @@
+---
+title: "cops release check"
+description: "Run release gates defined in cops.project.json and block deployment on failures."
+---
+
+`cops release check` evaluates release gates configured in `cops.project.json`. Each gate defines a type (e.g. `bamboo-latest-build-success`), severity, and optional waiver. The command exits with a non-zero code when any blocking gate fails.
+
+## Usage
+
+```bash
+cops release check [flags]
+```
+
+## Flags
+
+<ParamField path="--all" type="boolean" default="false">
+  Run all enabled gates defined in `release.gates`. When omitted and `--gate` is not specified, only the first enabled gate is evaluated.
+</ParamField>
+
+<ParamField path="--gate" type="string">
+  Run a single gate by its `id`. Mutually exclusive with `--all`.
+</ParamField>
+
+<ParamField path="--project" type="string">
+  Project key from the `projects` map in `cops.project.json`. Defaults to `defaultProject` when set, otherwise uses the top-level `release` block.
+</ParamField>
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+</ParamField>
+
+<ParamField path="--profile" type="string">
+  Override the active config profile.
+</ParamField>
+
+## Output columns
+
+`project`, `gateId`, `type`, `severity`, `owner`, `team`, `ticket`, `slaHours`, `rawStatus`, `status`, `blocking`, `waived`, `waiverExpires`, `details`
+
+| Column | Description |
+| --- | --- |
+| `gateId` | Gate identifier from `cops.project.json` |
+| `type` | Gate type (e.g. `bamboo-latest-build-success`) |
+| `severity` | Severity level: `low`, `medium`, `high`, or `critical` |
+| `rawStatus` | Raw evaluation result: `pass`, `warn`, or `fail` |
+| `status` | Effective status after applying waivers: `pass`, `warn`, `fail`, or `waived` |
+| `blocking` | `true` when the gate failure blocks the release |
+| `waived` | `true` when an active waiver has been applied |
+| `details` | Human-readable evaluation detail |
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | All evaluated gates passed |
+| `1` | One or more gates are blocking (`fail` with high/critical severity or raw `fail`) |
+| `2` | One or more gates produced a non-blocking `warn` or `waived` result |
+| `3` | Configuration error (missing or invalid `cops.project.json`) |
+
+<Note>
+  A gate with severity `high` or `critical` that evaluates to `warn` is treated as blocking. Gates with severity `low` or `medium` that evaluate to `warn` are non-blocking. An active waiver changes the effective status to `waived` and clears the blocking flag regardless of severity.
+</Note>
+
+## Supported gate types
+
+| Type | Checks |
+| --- | --- |
+| `jira-stories-exist` | Jira issues exist for the configured `fixVersion` |
+| `confluence-page-exists` | Required Confluence page exists in the space |
+| `confluence-page-sections` | Required sections are present in the Confluence page body |
+| `confluence-page-freshness` | Confluence page was updated within `maxAgeDays` |
+| `bitbucket-release-branch-exists` | Release branch exists in the Bitbucket repository |
+| `bitbucket-pr-checks` | Open PRs targeting the release branch are within threshold |
+| `bamboo-plan-active` | Bamboo plan is enabled and active |
+| `bamboo-latest-build-success` | Latest Bamboo build for the plan has a `SUCCESS` state |
+| `checkmarx-scan-threshold` | Checkmarx scan results are within configured H/M/L thresholds |
+| `deployment-freeze-window` | Current time is not inside a configured freeze window |
+| `bamboo-multi-env-promotion` | Bamboo deployment environments were promoted in order |
+
+## Examples
+
+<CodeGroup>
+
+```bash Run all enabled gates
+cops release check --all
+```
+
+```bash Run a single gate by ID
+cops release check --gate bamboo-build-check
+```
+
+```bash Run all gates for a named project
+cops release check --all --project my-service
+```
+
+```bash JSON output for CI parsing
+cops release check --all --output json
+```
+
+```bash Use with a specific profile
+cops release check --all --profile production
+```
+
+</CodeGroup>
+
+```
+gateId               type                        severity  status  blocking  details
+───────────────────  ──────────────────────────  ────────  ──────  ────────  ─────────────────────────────────────
+bamboo-build-check   bamboo-latest-build-success  high     pass    false     PROJ-PLAN-42 is successful
+confluence-docs      confluence-page-exists       medium   pass    false     Found page 98765
+branch-check         bitbucket-release-branch-exists  high  pass  false     Release branch exists
+```
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
+    Cross-product release readiness summary.
+  </Card>
+  <Card title="cops release evidence generate" icon="file-lines" href="/commands/release/evidence">
+    Generate evidence artifacts from gate evaluations.
+  </Card>
+</Columns>

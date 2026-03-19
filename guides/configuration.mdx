@@ -1,0 +1,232 @@
+---
+title: "Configuration"
+description: "User config location, cops.project.json structure, config file precedence, and all supported gate types."
+---
+
+cops uses two separate config files: a **user config** (`config.json`) that stores auth profiles, and a **project config** (`cops.project.json`) that stores release gate policies for a specific project.
+
+## User config
+
+The user config lives at:
+
+| Platform | Path |
+| --- | --- |
+| Linux / macOS | `~/.config/cops/config.json` |
+| Windows | `%APPDATA%\cops\config.json` |
+
+It is managed entirely by the `cops auth` commands. You should not edit it by hand. See [Auth profiles](/guides/auth-profiles) for the full structure and management commands.
+
+## Project config (`cops.project.json`)
+
+The project config declares your release gate policy — which gates to run, with what parameters, against which Jira project / Confluence space / Bitbucket repo / Bamboo plans.
+
+### Creating a config
+
+```bash
+cops init --template backend-service
+```
+
+By default, cops writes `cops.project.json` to the global config directory. Use `--target local` to write it into the current working directory instead:
+
+```bash
+cops init --template backend-service --target local
+```
+
+### Config file precedence
+
+cops looks for `cops.project.json` in this order and uses the **first file found**:
+
+1. **`COPS_PROJECT_CONFIG` environment variable** — explicit file path; takes priority over everything else
+2. **Global config directory** — `~/.config/cops/cops.project.json` (Linux/macOS) or `%APPDATA%\cops\cops.project.json` (Windows)
+3. **Current working directory** — `./cops.project.json`
+
+<Note>
+Use `COPS_PROJECT_CONFIG=/path/to/my-config.json cops release check --all` to target a specific file without moving it or changing the global config.
+</Note>
+
+### Full structure
+
+Below is a complete annotated example derived from the built-in template:
+
+```json
+{
+  "defaultProject": "my-service",
+  "projects": {
+    "my-service": {
+      "jira": {
+        "projectKey": "EXAMPLE",
+        "fixVersion": "2026-01-01",
+        "readyStatuses": [
+          "Ready for Release",
+          "Done",
+          "Closed",
+          "Resolved"
+        ]
+      },
+      "confluence": {
+        "requiredPages": [
+          {
+            "spaceKey": "ENG",
+            "title": "Service Deployment Playbook"
+          }
+        ]
+      },
+      "bitbucket": {
+        "releaseBranch": "release/2026-03-13"
+      },
+      "bamboo": {
+        "requiredPlans": [
+          "EXAMPLE-PLAN"
+        ]
+      },
+      "gates": [
+        {
+          "id": "jira-stories",
+          "type": "jira-stories-exist",
+          "enabled": true,
+          "severity": "high"
+        },
+        {
+          "id": "confluence-doc",
+          "type": "confluence-page-exists",
+          "enabled": false,
+          "severity": "high"
+        },
+        {
+          "id": "confluence-sections",
+          "type": "confluence-page-sections",
+          "enabled": false,
+          "severity": "high",
+          "params": {
+            "requiredSections": ["Deployment Steps", "Rollback"]
+          }
+        },
+        {
+          "id": "release-branch",
+          "type": "bitbucket-release-branch-exists",
+          "enabled": false,
+          "severity": "high"
+        },
+        {
+          "id": "bitbucket-open-pr-threshold",
+          "type": "bitbucket-pr-checks",
+          "enabled": false,
+          "severity": "medium",
+          "params": {
+            "maxOpenToRelease": 0
+          }
+        },
+        {
+          "id": "bamboo-plan",
+          "type": "bamboo-plan-active",
+          "enabled": false,
+          "severity": "high"
+        },
+        {
+          "id": "bamboo-latest-build",
+          "type": "bamboo-latest-build-success",
+          "enabled": false,
+          "severity": "high"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Config sections
+
+<AccordionGroup>
+
+  <Accordion title="Top-level fields">
+    | Field | Type | Description |
+    | --- | --- | --- |
+    | `defaultProject` | string | Project ID to use when `--project` is not specified on the command line |
+    | `projects` | object | Map of project ID → project release config |
+
+    If `defaultProject` is set and the named project exists in `projects`, cops uses it automatically. If there is exactly one project defined and `defaultProject` is absent, cops uses that project by default.
+  </Accordion>
+
+  <Accordion title="jira section">
+    | Field | Type | Description |
+    | --- | --- | --- |
+    | `projectKey` | string | Jira project key (e.g. `EXAMPLE`) |
+    | `fixVersion` | string | Target fixVersion name (e.g. `2026-01-01`) |
+    | `readyStatuses` | string[] | Issue statuses that count as release-ready |
+
+    Gates of type `jira-stories-exist` resolve `projectKey` and `fixVersion` from this section if not overridden in `params`.
+  </Accordion>
+
+  <Accordion title="confluence section">
+    | Field | Type | Description |
+    | --- | --- | --- |
+    | `requiredPages` | array | List of `{ spaceKey, title }` objects |
+
+    Confluence gates resolve the first entry in `requiredPages` as the target page if `params.spaceKey` and `params.title` are not specified directly on the gate.
+  </Accordion>
+
+  <Accordion title="bitbucket section">
+    | Field | Type | Description |
+    | --- | --- | --- |
+    | `projectKey` | string | Bitbucket project key |
+    | `repo` | string | Repository slug |
+    | `releaseBranch` | string | Name of the release branch (e.g. `release/2026-03-13`) |
+
+    Bitbucket gates resolve these values from the section unless overridden in `params`.
+  </Accordion>
+
+  <Accordion title="bamboo section">
+    | Field | Type | Description |
+    | --- | --- | --- |
+    | `requiredPlans` | string[] | List of Bamboo plan keys (e.g. `["EXAMPLE-PLAN"]`) |
+
+    Bamboo gates resolve the first entry in `requiredPlans` as the target plan if `params.plan` is not specified on the gate.
+  </Accordion>
+
+  <Accordion title="gate fields">
+    Each entry in `gates` supports the following fields:
+
+    | Field | Type | Description |
+    | --- | --- | --- |
+    | `id` | string | Unique identifier for this gate within the project (required) |
+    | `type` | string | Gate type — see full list below (required) |
+    | `enabled` | boolean | Whether to run this gate; defaults to `true` |
+    | `severity` | string | `low`, `medium`, `high`, or `critical`; defaults to `high` |
+    | `owner` | string | Individual or team responsible for this gate |
+    | `team` | string | Team responsible for remediation |
+    | `ticket` | string | Tracking ticket reference |
+    | `slaHours` | number | SLA in hours for remediation |
+    | `waiver` | string | Waiver reason; suppresses blocking behaviour if set and not expired |
+    | `waiverExpires` | string | ISO datetime after which the waiver no longer applies |
+    | `params` | object | Gate-specific parameters (see individual gate types) |
+
+    A gate with `severity: high` or `severity: critical` that produces a `warn` result is treated as **blocking**. Lower severities produce a non-blocking warning.
+  </Accordion>
+
+</AccordionGroup>
+
+## Supported gate types
+
+| Gate type | What it checks |
+| --- | --- |
+| `jira-stories-exist` | At least one Jira issue exists for the configured `projectKey` + `fixVersion` |
+| `confluence-page-exists` | A Confluence page with the given space key and title exists |
+| `confluence-page-sections` | The Confluence page body contains all `requiredSections` headings |
+| `confluence-page-freshness` | The Confluence page was last updated within `maxAgeDays` (default: 14) |
+| `bitbucket-release-branch-exists` | The configured `releaseBranch` exists in the Bitbucket repository |
+| `bitbucket-pr-checks` | Open pull requests targeting the release branch are within the `maxOpenToRelease` threshold (default: 0) |
+| `bamboo-plan-active` | The configured Bamboo plan is enabled and active |
+| `bamboo-latest-build-success` | The latest build for the Bamboo plan succeeded |
+| `checkmarx-scan-threshold` | Checkmarx scan results are within the configured High / Medium / Low count thresholds |
+| `deployment-freeze-window` | The current time is not inside any configured deployment freeze window |
+| `bamboo-multi-env-promotion` | Two or more Bamboo deployment environments show the required state in the correct promotion order |
+
+## Validating your config
+
+After editing `cops.project.json`, validate it before running gates:
+
+```bash
+cops release policy validate --project my-service
+```
+
+This checks for duplicate gate IDs, unsupported gate types, missing required params, and invalid values like `slaHours` or `waiverExpires`.

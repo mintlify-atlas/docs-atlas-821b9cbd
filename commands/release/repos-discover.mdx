@@ -1,0 +1,160 @@
+---
+title: "cops release repos discover"
+description: "Dynamically discover release repos from Jira dev-status links for in-scope issues."
+---
+
+`cops release repos discover` queries Jira dev-status artifacts for each in-scope issue and extracts the Bitbucket repositories, Bamboo plan links, and deployment environment links referenced in branch and pull-request activity. Each discovered repo is then validated against Bitbucket.
+
+## Usage
+
+```bash
+cops release repos discover [flags]
+```
+
+## Flags
+
+<ParamField path="--project" type="string">
+  Project key from `cops.project.json`. When set, `jiraProject` and `fixVersion` defaults are read from the matching project configuration.
+</ParamField>
+
+<ParamField path="--jiraProject" type="string">
+  Jira project key override (e.g. `MYPROJ`). Required when not using sprint scope and no project config is present.
+</ParamField>
+
+<ParamField path="--fixVersion" type="string">
+  Jira fixVersion label to scope discovery (e.g. `2026-Q1`). Required when using fixVersion scope (not sprint scope).
+</ParamField>
+
+<ParamField path="--board" type="number">
+  Jira board ID. When provided, the active sprint(s) on this board determine the in-scope issues instead of `--fixVersion`.
+</ParamField>
+
+<ParamField path="--sprintIds" type="string">
+  Comma-separated sprint IDs to use as discovery scope (e.g. `101,102`). Takes precedence over `--board` sprint resolution.
+</ParamField>
+
+<ParamField path="--sprintStates" type="string">
+  Sprint states for board-based scope. Comma-separated: `active`, `future`, `closed`. Defaults to `active`.
+</ParamField>
+
+<ParamField path="--issueTypes" type="string">
+  Comma-separated issue types to include in scope (e.g. `Story,Defect`). Defaults to all types when omitted.
+</ParamField>
+
+<ParamField path="--maxIssues" type="number" default="500">
+  Maximum number of in-scope issues to inspect for repo links.
+</ParamField>
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+</ParamField>
+
+<ParamField path="--profile" type="string">
+  Override the active config profile.
+</ParamField>
+
+## Output columns
+
+`projectKey`, `repo`, `issuesLinked`, `validated`, `source`, `bambooPlans`, `deploymentEnvs`, `deploymentLinks`, `issueKeys`
+
+| Column | Description |
+| --- | --- |
+| `projectKey` | Bitbucket project key for the discovered repo |
+| `repo` | Bitbucket repository slug |
+| `issuesLinked` | Number of in-scope Jira issues linked to this repo |
+| `validated` | `true` when the repo was confirmed to exist in Bitbucket |
+| `source` | How the repo was identified: `dev-status` (structured API data) or `dev-status-url` (URL pattern extraction) |
+| `bambooPlans` | Bamboo plan keys found in dev-status deployment artifacts |
+| `deploymentEnvs` | Deployment environment names/IDs found in dev-status |
+| `deploymentLinks` | Total number of deployment event links across in-scope issues |
+| `issueKeys` | Jira issue keys linked to this repo |
+
+## Scope modes
+
+### fixVersion scope
+
+Used when `--jiraProject` and `--fixVersion` are provided (and no sprint flags).
+
+```bash
+cops release repos discover --jiraProject MYPROJ --fixVersion 2026-Q1
+```
+
+The command runs a JQL query:
+```
+project = MYPROJ AND fixVersion = "2026-Q1"
+```
+
+### Sprint scope
+
+Used when `--board` or `--sprintIds` is provided. In this mode `--fixVersion` is optional and acts as an additional filter.
+
+```bash
+# Scope to active sprint on board 42
+cops release repos discover --board 42
+
+# Scope to specific sprint IDs
+cops release repos discover --sprintIds 101,102
+
+# Scope to active sprint, then filter by fixVersion
+cops release repos discover --board 42 --fixVersion 2026-Q1
+```
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Repos discovered and all in-scope issues have repo links |
+| `1` | No repos discovered |
+| `2` | Repos discovered but some in-scope issues are missing dev repo links |
+
+## Examples
+
+<CodeGroup>
+
+```bash Discover by fixVersion
+cops release repos discover --jiraProject MYPROJ --fixVersion 2026-Q1
+```
+
+```bash Discover using active sprint on board 42
+cops release repos discover --board 42
+```
+
+```bash Scope to specific sprint IDs with issue type filter
+cops release repos discover --sprintIds 101,102 --issueTypes Story,Defect
+```
+
+```bash JSON output
+cops release repos discover --jiraProject MYPROJ --fixVersion 2026-Q1 --output json
+```
+
+```bash Use project config defaults
+cops release repos discover --project my-service
+```
+
+</CodeGroup>
+
+```
+projectKey  repo         issuesLinked  validated  source      bambooPlans  deploymentEnvs
+──────────  ───────────  ────────────  ─────────  ──────────  ───────────  ──────────────
+MYPROJ      my-service   14            true       dev-status  PROJ-PLAN    production#12345
+MYPROJ      auth-lib     6             true       dev-status  PROJ-AUTH
+```
+
+<Tip>
+  Pass `--output json` and pipe the result to `jq` to extract repo slugs or bamboo plan keys for use in downstream pipeline steps.
+</Tip>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
+    Run summary with `--discover` to aggregate checks across discovered repos.
+  </Card>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run release gates including Bitbucket and Bamboo checks.
+  </Card>
+</Columns>

@@ -1,0 +1,165 @@
+---
+title: "cops release summary"
+description: "Get a cross-product release readiness summary across Jira, Confluence, Bitbucket, and Bamboo."
+---
+
+`cops release summary` produces a cross-product readiness report for a release. When `cops.project.json` contains configured gates, the command evaluates those gates directly (same logic as `cops release check`). When no gates are configured, it falls back to a set of built-in checks across Jira, Confluence, Bitbucket, and Bamboo.
+
+Adding `--discover` runs additional aggregate checks across all repos discovered from Jira dev-status links.
+
+## Usage
+
+```bash
+cops release summary [flags]
+```
+
+## Flags
+
+<ParamField path="--project" type="string">
+  Project key from the `projects` map in `cops.project.json`. Defaults to `defaultProject` when set.
+</ParamField>
+
+<ParamField path="--fixVersion" type="string">
+  Jira fixVersion label to evaluate (e.g. `2026-Q1`). Falls back to `release.jira.fixVersion` in `cops.project.json`.
+</ParamField>
+
+<ParamField path="--jiraProject" type="string">
+  Jira project key override (e.g. `MYPROJ`). Falls back to `release.jira.projectKey`.
+</ParamField>
+
+<ParamField path="--readyStatuses" type="string">
+  Comma-separated Jira statuses treated as release-ready (e.g. `Done,Closed`). Defaults to `Ready for Release,Done,Closed,Resolved`.
+</ParamField>
+
+<ParamField path="--confluenceSpace" type="string">
+  Confluence space key for the required release page check. Falls back to `release.confluence.requiredPages[0].spaceKey`.
+</ParamField>
+
+<ParamField path="--confluencePageTitle" type="string">
+  Title of the required Confluence release page. Falls back to `release.confluence.requiredPages[0].title`, then `Consolidated Deployment Steps`.
+</ParamField>
+
+<ParamField path="--bitbucketProject" type="string">
+  Bitbucket project key. Falls back to `release.bitbucket.projectKey`.
+</ParamField>
+
+<ParamField path="--bitbucketRepo" type="string">
+  Bitbucket repository slug. Falls back to `release.bitbucket.repo`.
+</ParamField>
+
+<ParamField path="--releaseBranch" type="string">
+  Release branch name (e.g. `release/2026-03-13`). Falls back to `release.bitbucket.releaseBranch`.
+</ParamField>
+
+<ParamField path="--bambooPlan" type="string">
+  Bamboo plan key (e.g. `PROJ-PLAN`). Falls back to `release.bamboo.requiredPlans[0]`.
+</ParamField>
+
+<ParamField path="--discover" type="boolean" default="false">
+  Enable dynamic repo discovery. Discovers in-scope repos from Jira dev-status links and runs aggregate checks (release branch existence, open PR threshold, build signal) across each discovered repo.
+</ParamField>
+
+<ParamField path="--discoverBoard" type="number">
+  Jira board ID for sprint-based discovery scope. When provided, the active sprint on this board determines the in-scope issues.
+</ParamField>
+
+<ParamField path="--discoverSprintStates" type="string">
+  Comma-separated sprint states for board-based discovery: `active`, `future`, `closed`. Defaults to `active`.
+</ParamField>
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+</ParamField>
+
+<ParamField path="--profile" type="string">
+  Override the active config profile.
+</ParamField>
+
+## Built-in checks (no gates configured)
+
+When `cops.project.json` has no `release.gates`, the command runs these built-in checks:
+
+| Product | Check | Status logic |
+| --- | --- | --- |
+| Jira | Stories exist for `fixVersion` | `pass` when at least 1 story found; `warn` otherwise |
+| Jira | Stories in release-ready statuses | `pass` when all stories are in `readyStatuses`; `warn` otherwise |
+| Confluence | Release documentation page exists | `pass` when page found; `warn` otherwise |
+| Bitbucket | Release branch exists | `pass` when branch found; `warn` otherwise |
+| Bitbucket | Story merge coverage to release branch | `pass` when all story keys appear in merged PR branches/titles; `warn` otherwise |
+| Bamboo | Build plan availability | `pass` when plan is enabled and active; `warn` otherwise |
+| Bamboo | Latest build state | `pass` when latest build state contains `SUCCESS`; `warn` otherwise |
+
+## Discovery checks (`--discover`)
+
+When `--discover` is set, additional checks run across repos found via Jira dev-status:
+
+| Product | Check |
+| --- | --- |
+| Jira | Number of repos discovered and issues inspected |
+| Jira | Issues missing dev repo links |
+| Bamboo | Discovered repos with Bamboo plan links |
+| Bamboo | Discovered repos with deployment environment links |
+| Bitbucket | Release branch exists in each discovered repo |
+| Bitbucket | Open PR count is within threshold in each discovered repo |
+| Bitbucket | Latest release-branch commit has a SUCCESS build signal |
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | All checks passed |
+| `1` | One or more checks failed or a blocking gate failed |
+| `2` | One or more checks produced a `warn` result |
+
+## Examples
+
+<CodeGroup>
+
+```bash Summary from cops.project.json defaults
+cops release summary
+```
+
+```bash Override fixVersion and branch
+cops release summary --fixVersion 2026-Q1 --releaseBranch release/2026-03-13
+```
+
+```bash Summary with dynamic repo discovery
+cops release summary --discover
+```
+
+```bash Discovery scoped to active sprint on board 42
+cops release summary --discover --discoverBoard 42
+```
+
+```bash JSON output for CI
+cops release summary --output json
+```
+
+</CodeGroup>
+
+```
+product     check                                status  details
+──────────  ───────────────────────────────────  ──────  ──────────────────────────────────────────────
+jira        Stories in fixVersion                pass    23 stories found
+jira        Stories in release-ready statuses    pass    All stories are in release-ready status
+confluence  Release documentation page           pass    Found page 'Consolidated Deployment Steps'
+bitbucket   Release branch exists                pass    release/2026-03-13 exists
+bitbucket   Story merge coverage to release branch  pass  23/23 stories linked to merged PRs
+bamboo      Build plan availability              pass    PROJ-PLAN is enabled/active
+bamboo      Latest build state                   pass    PROJ-PLAN-99: Successful
+```
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run individual release gates with exit-code control.
+  </Card>
+  <Card title="cops release repos discover" icon="magnifying-glass" href="/commands/release/repos-discover">
+    Discover repos from Jira dev-status links.
+  </Card>
+</Columns>

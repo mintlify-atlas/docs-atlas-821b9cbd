@@ -1,0 +1,350 @@
+---
+title: "cops release evidence"
+description: "Generate, validate, diff, and trend release evidence artifacts from configured release gates."
+---
+
+The `cops release evidence` commands produce and inspect machine-readable release evidence artifacts. Evidence files record gate evaluation results in a versioned JSON schema (`v1`) and an accompanying Markdown report. They are designed to be stored as release artifacts and compared across releases.
+
+<AccordionGroup>
+
+  <Accordion title="cops release evidence generate" defaultOpen>
+
+    Evaluate all enabled gates from `cops.project.json` and write a `release-evidence.json` and `release-evidence.md` to the output directory.
+
+    ## Usage
+
+    ```bash
+    cops release evidence generate [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string">
+      Project key from `cops.project.json`. Defaults to `defaultProject` or the top-level `release` block.
+    </ParamField>
+
+    <ParamField path="--outDir" type="string" default="output">
+      Directory to write the generated evidence artifacts. Created if it does not exist.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format for the command summary: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `artifact`, `path`, `overall`
+
+    Two rows are written per run — one for the JSON artifact and one for the Markdown report.
+
+    ## Evidence file schema (v1)
+
+    ```json
+    {
+      "schemaVersion": "v1",
+      "project": "my-service",
+      "generatedAt": "2026-03-19T10:00:00.000Z",
+      "overall": "pass",
+      "gateCount": 3,
+      "results": [
+        {
+          "gateId": "bamboo-build-check",
+          "type": "bamboo-latest-build-success",
+          "severity": "high",
+          "rawStatus": "pass",
+          "status": "pass",
+          "blocking": false,
+          "details": "PROJ-PLAN-42 is successful"
+        }
+      ]
+    }
+    ```
+
+    The `overall` field is `pass`, `warn`, or `fail`:
+    - `fail` — at least one blocking gate failed
+    - `warn` — at least one gate is `warn` or `waived`, no blocking failures
+    - `pass` — all gates passed
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | All gates passed (`overall: pass`) |
+    | `1` | At least one blocking gate failed (`overall: fail`) |
+    | `2` | At least one gate warned or was waived (`overall: warn`) |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Generate evidence to default output directory
+cops release evidence generate
+    ```
+
+    ```bash Generate to a custom directory
+cops release evidence generate --outDir artifacts/release
+    ```
+
+    ```bash Generate for a named project
+cops release evidence generate --project my-service
+    ```
+
+    ```bash JSON summary output
+cops release evidence generate --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    artifact  path                              overall
+    ────────  ────────────────────────────────  ───────
+    json      /workspace/output/release-evidence.json  pass
+    markdown  /workspace/output/release-evidence.md    pass
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops release evidence validate">
+
+    Validate one or more release evidence JSON files against the v1 schema contract. Use `--strict` to enforce allowed keys and enum values.
+
+    ## Usage
+
+    ```bash
+    cops release evidence validate --file <path> [flags]
+    cops release evidence validate --dir <directory> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--file" type="string">
+      Path to a single evidence JSON file to validate. Provide either `--file` or `--dir`.
+    </ParamField>
+
+    <ParamField path="--dir" type="string">
+      Directory containing evidence JSON files. Validates all files matching the `--prefix` filter.
+    </ParamField>
+
+    <ParamField path="--prefix" type="string" default="release-evidence">
+      Filename prefix filter when using `--dir`.
+    </ParamField>
+
+    <ParamField path="--strict" type="boolean" default="false">
+      Enable strict validation: enforces allowed top-level and result keys, and validates `severity` against `low|medium|high|critical`.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    ## Output columns
+
+    `file`, `status`, `details`
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | All files passed validation |
+    | `1` | One or more files failed validation |
+
+    ## Validation rules (v1)
+
+    - `schemaVersion` must be `v1`
+    - `generatedAt` must be a valid ISO datetime
+    - `overall` must be `pass`, `warn`, or `fail`
+    - `results` must be an array
+    - `gateCount` must equal `results.length`
+    - Each result must have `gateId`, `type`, `severity`, `rawStatus` (`pass|warn|fail`), `status` (`pass|warn|fail|waived`), `blocking` (boolean), and `details`
+
+    In strict mode, unknown top-level keys and unknown result keys are also reported as errors.
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Validate a single file
+cops release evidence validate --file output/release-evidence.json
+    ```
+
+    ```bash Validate all files in a directory
+cops release evidence validate --dir output
+    ```
+
+    ```bash Strict validation
+cops release evidence validate --file output/release-evidence.json --strict
+    ```
+
+    ```bash JSON output
+cops release evidence validate --dir output --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    file                    status  details
+    ──────────────────────  ──────  ───────────────────────────
+    release-evidence.json   pass    valid v1 evidence contract
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops release evidence diff">
+
+    Compare two release evidence JSON artifacts. Reports added gates, removed gates, status changes, and blocking flag changes between a previous and current evidence file.
+
+    ## Usage
+
+    ```bash
+    cops release evidence diff --previous <path> --current <path> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--previous" type="string" required>
+      Path to the previous release evidence JSON file.
+    </ParamField>
+
+    <ParamField path="--current" type="string" required>
+      Path to the current release evidence JSON file.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    ## Output columns
+
+    `kind`, `gateId`, `previous`, `current`, `details`
+
+    | Column | Description |
+    | --- | --- |
+    | `kind` | Change type: `overall`, `status_change`, `blocking_change`, `added_gate`, `removed_gate` |
+    | `gateId` | Gate identifier (or `-` for overall changes) |
+    | `previous` | Previous value |
+    | `current` | Current value |
+    | `details` | Human-readable description of the change |
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | No differences found |
+    | `2` | One or more differences detected |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Diff two evidence files
+cops release evidence diff --previous artifacts/prev/release-evidence.json --current artifacts/current/release-evidence.json
+    ```
+
+    ```bash JSON output for CI
+cops release evidence diff --previous prev.json --current current.json --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    kind          gateId             previous  current  details
+    ────────────  ─────────────────  ────────  ───────  ────────────────────────
+    status_change bamboo-build-check  warn     pass     Gate status changed
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops release evidence trend">
+
+    Analyze gate status trend across multiple release evidence JSON files in a directory. Files are sorted by `generatedAt` and the most recent `--limit` files are analyzed.
+
+    ## Usage
+
+    ```bash
+    cops release evidence trend [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--dir" type="string" default="output">
+      Directory containing evidence JSON files to analyze.
+    </ParamField>
+
+    <ParamField path="--prefix" type="string" default="release-evidence">
+      Filename prefix filter. Only files starting with this prefix are included.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="20">
+      Maximum number of files to analyze (most recent by `generatedAt`).
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    ## Output columns
+
+    `file`, `generatedAt`, `overall`, `gates`, `pass`, `warn`, `fail`, `waived`, `blocking`
+
+    Each row represents one evidence file. Rows are ordered oldest to newest.
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | Most recent evidence has no blocking gates and no warn/fail |
+    | `1` | Most recent evidence has one or more blocking gates |
+    | `2` | Most recent evidence has warn or fail gates (no blocking) |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Analyze trend in default output directory
+cops release evidence trend
+    ```
+
+    ```bash Analyze up to 10 files in a custom directory
+cops release evidence trend --dir artifacts/evidence --limit 10
+    ```
+
+    ```bash JSON output
+cops release evidence trend --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    file                    generatedAt           overall  gates  pass  warn  fail  waived  blocking
+    ──────────────────────  ────────────────────  ───────  ─────  ────  ────  ────  ──────  ────────
+    release-evidence.json   2026-03-17T08:00:00Z  warn     5      4     1     0     0       0
+    release-evidence.json   2026-03-18T08:00:00Z  pass     5      5     0     0     0       0
+    release-evidence.json   2026-03-19T08:00:00Z  pass     5      5     0     0     0       0
+    ```
+
+    <Tip>
+      Store evidence files from each release cycle in a shared directory to build a history you can trend over time. Include the release date or version in the filename (or subdirectory) to distinguish runs.
+    </Tip>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run release gates and view gate evaluation details.
+  </Card>
+  <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
+    Cross-product release readiness summary.
+  </Card>
+</Columns>

@@ -1,0 +1,66 @@
+---
+title: "Bitbucket commands"
+description: "Command reference for all cops bitbucket subcommands — repo, branch, pr, and commits."
+---
+
+The `cops bitbucket` command group provides read and validation operations against a Bitbucket Data Center instance. Commands use the active profile configured with `cops auth login`, or the profile you specify with `--profile`.
+
+## Quick reference
+
+| Command | Description |
+| --- | --- |
+| `cops bitbucket repo get` | Fetch repository details |
+| `cops bitbucket branch list` | List branches in a repository |
+| `cops bitbucket branch exists` | Check whether a branch exists |
+| `cops bitbucket pr list` | List pull requests |
+| `cops bitbucket pr checks` | Run release-branch PR readiness checks |
+| `cops bitbucket commits list` | List commits for a repository or branch |
+| `cops bitbucket commit build-status <commit>` | Get CI build statuses for a commit |
+
+## Command groups
+
+<CardGroup cols={2}>
+  <Card title="cops bitbucket repo" icon="database" href="/commands/bitbucket/repo">
+    Fetch repository details by project key and repository slug.
+  </Card>
+  <Card title="cops bitbucket branch" icon="git-branch" href="/commands/bitbucket/branch">
+    List branches and check whether a specific branch exists.
+  </Card>
+  <Card title="cops bitbucket pr" icon="git-pull-request" href="/commands/bitbucket/pr">
+    List pull requests by state and run release-branch readiness checks.
+  </Card>
+  <Card title="cops bitbucket commits" icon="git-commit" href="/commands/bitbucket/commits">
+    List commits for a repository or branch and inspect CI build statuses.
+  </Card>
+</CardGroup>
+
+## Common flags
+
+All `cops bitbucket` subcommands accept the following flags:
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--output` | `table` \| `json` \| `markdown` | `table` | Output format |
+| `--insecure` | boolean | `false` | Disable TLS certificate validation |
+| `--profile` | string | active profile | Override the active config profile |
+
+Most subcommands also require:
+
+| Flag | Type | Description |
+| --- | --- | --- |
+| `--project` | string | Bitbucket project key (e.g. `MYPROJ`) |
+| `--repo` | string | Bitbucket repository slug (e.g. `my-service`) |
+
+<Warning>
+`--insecure` disables TLS certificate validation and exposes traffic to MITM attacks. Use it only with self-signed certificates in trusted networks.
+</Warning>
+
+## Prerequisites
+
+You must have a Bitbucket profile configured before running any `cops bitbucket` command.
+
+```bash
+cops auth login
+```
+
+See [Auth profiles](/guides/auth-profiles) for details on setting up and managing profiles.

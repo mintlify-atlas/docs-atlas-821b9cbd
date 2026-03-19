@@ -1,0 +1,166 @@
+---
+title: 'Release gates overview'
+description: 'Declarative cross-product release readiness checks powered by cops.project.json.'
+---
+
+Release gates are declarative checks that must pass before a release proceeds. Each gate targets one aspect of release readiness — Jira story completion, documentation freshness, branch existence, build health, security scans, and more — and cops evaluates all of them in one command against live Atlassian Data Center APIs.
+
+Because gates are defined in `cops.project.json` alongside your project configuration, they are version-controlled, reviewable, and reproducible across environments.
+
+## How the gate system works
+
+```
+cops.project.json  →  cops release check  →  pass / warn / fail
+```
+
+1. `cops.project.json` declares which gates are active for a project and what parameters they need.
+2. `cops release check --all --project <id>` evaluates every enabled gate in parallel against live product APIs.
+3. Each gate returns a status (`pass`, `warn`, `fail`, or `waived`) and a `blocking` flag.
+4. The command exits with a non-zero code when any gate is blocking, making it safe to use as a CI/CD step.
+
+## Gate properties
+
+Every gate entry in the `gates` array supports the following properties:
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | string | Yes | Unique identifier for this gate within the project. Used in output and evidence files. |
+| `type` | string | Yes | The gate type to evaluate. See [Gate types](/release-gates/gate-types) for all supported values. |
+| `enabled` | boolean | No | Set to `false` to skip this gate. Defaults to `true` when omitted. |
+| `severity` | string | No | `high`, `medium`, `low`, or `critical`. Defaults to `high`. Controls whether a non-pass result is blocking. |
+| `params` | object | No | Gate-specific parameters. Overrides top-level product config values when provided. |
+| `owner` | string | No | Free-text owner label surfaced in output and evidence. |
+| `team` | string | No | Free-text team label surfaced in output and evidence. |
+| `ticket` | string | No | Reference ticket for tracking exceptions or remediation. |
+| `slaHours` | number | No | Positive number. Informational SLA hours surfaced in evidence. |
+| `waiver` | string | No | Reason string. When set and the gate fails, the result is marked `waived` instead of `fail`. |
+| `waiverExpires` | string | No | ISO 8601 datetime. The waiver is only applied before this timestamp. |
+
+## Example cops.project.json
+
+```json
+{
+  "defaultProject": "my-service",
+  "projects": {
+    "my-service": {
+      "jira": {
+        "projectKey": "MYPROJ",
+        "fixVersion": "2026-04-01",
+        "readyStatuses": ["Ready for Release", "Done", "Closed"]
+      },
+      "confluence": {
+        "requiredPages": [
+          { "spaceKey": "ENG", "title": "Service Deployment Playbook" }
+        ]
+      },
+      "bitbucket": {
+        "projectKey": "MYPROJ",
+        "repo": "my-service",
+        "releaseBranch": "release/2026-04-01"
+      },
+      "bamboo": {
+        "requiredPlans": ["MYPROJ-PLAN"]
+      },
+      "gates": [
+        {
+          "id": "jira-stories",
+          "type": "jira-stories-exist",
+          "enabled": true,
+          "severity": "high"
+        },
+        {
+          "id": "confluence-playbook",
+          "type": "confluence-page-exists",
+          "enabled": true,
+          "severity": "high"
+        },
+        {
+          "id": "confluence-freshness",
+          "type": "confluence-page-freshness",
+          "enabled": true,
+          "severity": "medium",
+          "params": { "maxAgeDays": 7 }
+        },
+        {
+          "id": "release-branch",
+          "type": "bitbucket-release-branch-exists",
+          "enabled": true,
+          "severity": "high"
+        },
+        {
+          "id": "open-pr-threshold",
+          "type": "bitbucket-pr-checks",
+          "enabled": true,
+          "severity": "medium",
+          "params": { "maxOpenToRelease": 0 }
+        },
+        {
+          "id": "bamboo-build",
+          "type": "bamboo-latest-build-success",
+          "enabled": true,
+          "severity": "high"
+        }
+      ]
+    }
+  }
+}
+```
+
+## How severity affects output
+
+Severity determines whether a non-passing gate result is **blocking**.
+
+| Gate result | Severity | Blocking? | Effective status |
+| --- | --- | --- | --- |
+| `pass` | any | No | `pass` |
+| `warn` | `high` or `critical` | **Yes** | `fail` |
+| `warn` | `medium` or `low` | No | `warn` |
+| `fail` | any | **Yes** | `fail` |
+| any non-pass (with active waiver) | any | No | `waived` |
+
+When any gate is blocking, `cops release check` exits with a non-zero exit code. This makes it straightforward to fail a CI/CD pipeline step when release readiness criteria are not met.
+
+<Warning>
+A `warn` result from a `high`-severity gate is treated as a blocking failure. If you want a check to be advisory only, set its severity to `medium` or `low`.
+</Warning>
+
+## Running gates
+
+```bash
+# Run all enabled gates for the default project
+cops release check --all
+
+# Run all enabled gates for a specific project
+cops release check --all --project my-service
+
+# Run a single gate by ID
+cops release check --gate jira-stories --project my-service
+
+# Output as JSON for scripting
+cops release check --all --project my-service --output json
+```
+
+## Validating configuration
+
+Before running gates in CI, validate the configuration locally:
+
+```bash
+cops release policy validate --project my-service
+```
+
+This checks for duplicate gate IDs, unsupported gate types, missing required params, and invalid values without making any API calls.
+
+<Tip>
+Run `cops init --template backend-service` to generate a `cops.project.json` with a set of pre-filled gate definitions you can enable one by one.
+</Tip>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Gate types" icon="list" href="/release-gates/gate-types">
+    Reference for all 11 supported gate types with configuration examples.
+  </Card>
+  <Card title="Release evidence" icon="file-check" href="/release-gates/evidence">
+    Generate, validate, diff, and trend release evidence artifacts for compliance and audit.
+  </Card>
+</Columns>

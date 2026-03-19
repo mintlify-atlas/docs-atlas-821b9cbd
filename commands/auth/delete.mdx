@@ -1,0 +1,62 @@
+---
+title: "cops auth delete"
+description: "Permanently delete a saved auth profile. This action cannot be undone."
+---
+
+`cops auth delete` removes the named profile from `config.json`. All stored credentials and settings for that profile are deleted permanently.
+
+<Warning>
+This action is irreversible. There is no confirmation prompt. Ensure you have the profile name correct before running the command.
+</Warning>
+
+## Usage
+
+```bash
+cops auth delete <profile>
+```
+
+## Arguments
+
+<ParamField query="profile" type="string" required>
+  The name of the profile to delete. Run `cops auth profiles` to see all available profile names.
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Delete a profile
+cops auth delete dc-staging
+```
+
+</CodeGroup>
+
+On success:
+
+```
+Deleted profile 'dc-staging'.
+```
+
+## Behavior when deleting the active profile
+
+If the profile you delete is currently active, cops automatically falls back to the first remaining profile (if any). If no profiles remain after the deletion, there is no active profile and commands that require authentication will error until you run `cops auth login`.
+
+## Notes
+
+<Note>
+If the named profile does not exist, the command exits with an error. Check available profiles first with `cops auth profiles`.
+</Note>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops auth profiles" icon="list" href="/commands/auth/profiles">
+    List all configured profiles.
+  </Card>
+  <Card title="cops auth logout" icon="log-out" href="/commands/auth/logout">
+    Unset the active profile without deleting it.
+  </Card>
+  <Card title="cops auth login" icon="key" href="/commands/auth/login">
+    Create a replacement profile.
+  </Card>
+</Columns>

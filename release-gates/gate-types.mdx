@@ -1,0 +1,362 @@
+---
+title: 'Gate types'
+description: 'Reference for all supported release gate types in cops.project.json.'
+---
+
+Each gate type targets a specific cross-product readiness check. Gates read their required parameters from the `params` object on the gate definition, falling back to the matching top-level product config block (`jira`, `confluence`, `bitbucket`, `bamboo`) when a param is not explicitly set.
+
+<AccordionGroup>
+
+  <Accordion title="jira-stories-exist">
+    Checks that at least one Jira issue exists for the configured `projectKey` and `fixVersion`. The gate passes when the JQL search returns one or more issues. It warns (and is blocking at `high` severity) when zero stories are found.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `projectKey` | `params.projectKey` or `jira.projectKey` | Jira project key. |
+    | `fixVersion` | `params.fixVersion` or `jira.fixVersion` | Target fix version string. |
+
+    ```json
+    {
+      "id": "jira-stories",
+      "type": "jira-stories-exist",
+      "enabled": true,
+      "severity": "high"
+    }
+    ```
+
+    <Note>
+    `readyStatuses` from `jira.readyStatuses` is stored in the project config but the gate evaluates only issue count against the fixVersion JQL — it does not filter by status. Use this gate to confirm the release scope is non-empty.
+    </Note>
+  </Accordion>
+
+  <Accordion title="confluence-page-exists">
+    Checks that a Confluence page with the given title exists in the specified space. The gate warns when the page is not found.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `spaceKey` | `params.spaceKey` or `confluence.requiredPages[0].spaceKey` | Confluence space key. |
+    | `title` | `params.title` or `confluence.requiredPages[0].title` | Exact page title. |
+
+    ```json
+    {
+      "id": "confluence-playbook",
+      "type": "confluence-page-exists",
+      "enabled": true,
+      "severity": "high"
+    }
+    ```
+
+    To check a page in a different space from the default, override with `params`:
+
+    ```json
+    {
+      "id": "runbook-exists",
+      "type": "confluence-page-exists",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "spaceKey": "OPS",
+        "title": "Production Runbook v4"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="confluence-page-sections">
+    Checks that a Confluence page contains all required section headings. The gate fetches the page body and performs a case-insensitive substring match for each entry in `requiredSections`.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `spaceKey` | `params.spaceKey` or `confluence.requiredPages[0].spaceKey` | Confluence space key. |
+    | `title` | `params.title` or `confluence.requiredPages[0].title` | Exact page title. |
+    | `requiredSections` | `params.requiredSections` (required) | Array of strings that must appear in the page body. |
+
+    ```json
+    {
+      "id": "playbook-sections",
+      "type": "confluence-page-sections",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "requiredSections": ["Deployment Steps", "Rollback", "Smoke Tests"]
+      }
+    }
+    ```
+
+    <Note>
+    `requiredSections` is a required parameter — the gate will warn and report a configuration error if it is omitted or empty.
+    </Note>
+  </Accordion>
+
+  <Accordion title="confluence-page-freshness">
+    Checks that a Confluence page was updated within a maximum number of days. Uses the page's `version.when` timestamp. The gate warns when the page age exceeds `maxAgeDays`.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `spaceKey` | `params.spaceKey` or `confluence.requiredPages[0].spaceKey` | Confluence space key. |
+    | `title` | `params.title` or `confluence.requiredPages[0].title` | Exact page title. |
+    | `maxAgeDays` | `params.maxAgeDays` | Maximum allowed page age in days. Defaults to `14`. |
+
+    ```json
+    {
+      "id": "playbook-freshness",
+      "type": "confluence-page-freshness",
+      "enabled": true,
+      "severity": "medium",
+      "params": {
+        "maxAgeDays": 7
+      }
+    }
+    ```
+
+    <Tip>
+    Set `severity` to `medium` when you want a stale-page alert that surfaces in the report without blocking the release.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="bitbucket-release-branch-exists">
+    Checks that the configured release branch exists in the Bitbucket repository. The gate warns when the branch is not found.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `projectKey` | `params.projectKey` or `bitbucket.projectKey` | Bitbucket project key. |
+    | `repo` | `params.repo` or `bitbucket.repo` | Repository slug. |
+    | `releaseBranch` | `params.releaseBranch` or `bitbucket.releaseBranch` | Branch name to look for. |
+
+    ```json
+    {
+      "id": "release-branch",
+      "type": "bitbucket-release-branch-exists",
+      "enabled": true,
+      "severity": "high"
+    }
+    ```
+
+    To override the branch name for a specific gate:
+
+    ```json
+    {
+      "id": "hotfix-branch",
+      "type": "bitbucket-release-branch-exists",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "projectKey": "MYPROJ",
+        "repo": "my-service",
+        "releaseBranch": "hotfix/critical-fix"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="bitbucket-pr-checks">
+    Checks that the number of open pull requests targeting the release branch is within the allowed threshold. The gate warns when the open PR count exceeds `maxOpenToRelease`.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `projectKey` | `params.projectKey` or `bitbucket.projectKey` | Bitbucket project key. |
+    | `repo` | `params.repo` or `bitbucket.repo` | Repository slug. |
+    | `releaseBranch` | `params.releaseBranch` or `bitbucket.releaseBranch` | Target branch to count open PRs against. |
+    | `maxOpenToRelease` | `params.maxOpenToRelease` | Maximum allowed open PRs to the release branch. Defaults to `0`. |
+
+    ```json
+    {
+      "id": "open-pr-threshold",
+      "type": "bitbucket-pr-checks",
+      "enabled": true,
+      "severity": "medium",
+      "params": {
+        "maxOpenToRelease": 0
+      }
+    }
+    ```
+
+    <Note>
+    Setting `maxOpenToRelease: 0` means the gate warns when any PR is still open to the release branch. Increase this value if your release process allows merging in-flight PRs after the cut.
+    </Note>
+  </Accordion>
+
+  <Accordion title="bamboo-plan-active">
+    Checks that the specified Bamboo plan is active and enabled. The gate warns when the plan is disabled or inactive.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `plan` | `params.plan` or `bamboo.requiredPlans[0]` | Bamboo plan key (e.g. `MYPROJ-PLAN`). |
+
+    ```json
+    {
+      "id": "bamboo-plan-active",
+      "type": "bamboo-plan-active",
+      "enabled": true,
+      "severity": "high"
+    }
+    ```
+
+    To check a specific plan key that differs from the project default:
+
+    ```json
+    {
+      "id": "deploy-plan-active",
+      "type": "bamboo-plan-active",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "plan": "MYPROJ-DEPLOY"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="bamboo-latest-build-success">
+    Checks that the latest build result for the specified Bamboo plan has a `SUCCESS` state. The gate warns when the latest build is missing or in any other state (e.g. `FAILED`, `IN_PROGRESS`).
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `plan` | `params.plan` or `bamboo.requiredPlans[0]` | Bamboo plan key. |
+
+    ```json
+    {
+      "id": "bamboo-build-green",
+      "type": "bamboo-latest-build-success",
+      "enabled": true,
+      "severity": "high"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="checkmarx-scan-threshold">
+    Reads a local Checkmarx scan report (JSON) and checks that the vulnerability counts for high, medium, and low severity findings are within the configured thresholds. The gate warns when any count exceeds its threshold.
+
+    cops supports several common Checkmarx report formats. It tries direct field extraction from the top-level object, `summary`, and `statistics.severity` sub-objects before falling back to walking all nodes and counting `severity` fields.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `reportPath` | `params.reportPath` (required) | File path to the Checkmarx JSON report. |
+    | `maxHigh` | `params.maxHigh` | Maximum allowed high-severity findings. Defaults to `0`. |
+    | `maxMedium` | `params.maxMedium` | Maximum allowed medium-severity findings. Defaults to `0`. |
+    | `maxLow` | `params.maxLow` | Maximum allowed low-severity findings. Defaults to unlimited. |
+
+    ```json
+    {
+      "id": "checkmarx-security",
+      "type": "checkmarx-scan-threshold",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "reportPath": "reports/checkmarx-latest.json",
+        "maxHigh": 0,
+        "maxMedium": 5,
+        "maxLow": 20
+      }
+    }
+    ```
+
+    <Warning>
+    The report file must exist at `reportPath` at the time `cops release check` runs. The gate fails immediately if the file is not found.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="deployment-freeze-window">
+    Checks whether the current time falls inside a configured deployment freeze window. The gate warns when the current timestamp is within any active freeze window, making it blocking when `severity` is `high`.
+
+    Supports a single window via `params.start` + `params.end`, or multiple windows via `params.windows[]`.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `start` | `params.start` | ISO 8601 datetime for a single freeze window start. |
+    | `end` | `params.end` | ISO 8601 datetime for a single freeze window end. |
+    | `windows` | `params.windows` | Array of `{ start, end }` objects for multiple freeze windows. |
+
+    Single window:
+
+    ```json
+    {
+      "id": "freeze-window",
+      "type": "deployment-freeze-window",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "start": "2026-04-01T00:00:00Z",
+        "end": "2026-04-03T23:59:59Z"
+      }
+    }
+    ```
+
+    Multiple windows:
+
+    ```json
+    {
+      "id": "freeze-windows",
+      "type": "deployment-freeze-window",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "windows": [
+          { "start": "2026-04-01T00:00:00Z", "end": "2026-04-03T23:59:59Z" },
+          { "start": "2026-12-24T00:00:00Z", "end": "2026-12-27T23:59:59Z" }
+        ]
+      }
+    }
+    ```
+
+    <Note>
+    At least one window must be configured. The gate fails at configuration validation time if neither `params.start`+`params.end` nor a non-empty `params.windows[]` is provided.
+    </Note>
+  </Accordion>
+
+  <Accordion title="bamboo-multi-env-promotion">
+    Checks that the latest deployment result for each specified Bamboo environment is in the required state, and that the promotions occurred in the order the environment IDs are listed (earlier IDs must have an earlier `finishedDate` than later ones).
+
+    This gate is used to verify that an artifact has been promoted through a defined sequence of environments (e.g. dev → staging → prod) before releasing.
+
+    **Parameters**
+
+    | Param | Source | Description |
+    | --- | --- | --- |
+    | `envIds` | `params.envIds` (required) | Array of Bamboo deployment environment IDs in promotion order. Minimum 2. |
+    | `requiredState` | `params.requiredState` | Required deployment state string. Defaults to `SUCCESS`. Case-insensitive. |
+
+    ```json
+    {
+      "id": "multi-env-promotion",
+      "type": "bamboo-multi-env-promotion",
+      "enabled": true,
+      "severity": "high",
+      "params": {
+        "envIds": [101, 102, 103],
+        "requiredState": "SUCCESS"
+      }
+    }
+    ```
+
+    The gate warns when:
+    - Any environment has no deployment results.
+    - Any environment's latest result is not in `requiredState`.
+    - The `finishedDate` timestamps are not in ascending order (promotion order violated).
+
+    <Note>
+    `envIds` must contain at least 2 environment IDs. The gate fails at configuration validation time with fewer than 2 IDs.
+    </Note>
+  </Accordion>
+
+</AccordionGroup>

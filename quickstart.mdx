@@ -1,80 +1,198 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get up and running with cops in under 5 minutes — configure auth and run your first cross-product commands."
 ---
 
-## Get started in three steps
+<Steps>
 
-Get your documentation site running locally and make your first customization.
+  <Step title="Configure an auth profile">
+    Run the interactive login wizard to create a named profile with connection details for each Atlassian product.
 
-### Step 1: Set up your local environment
+    ```bash
+    cops auth login
+    ```
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    The wizard prompts you for a profile name, then walks through each product (Jira, Confluence, Bitbucket, Bamboo). For each one you want to configure, provide the base URL and your credentials.
 
-### Step 2: Deploy your changes
+    ```
+    Profile name (e.g. dc-prod): dc-prod
+    Configure jira? (y/n): y
+      jira base URL (e.g. https://jira.company.com): https://jira.example.com
+      jira auth type [bearer/basic] (default: bearer): bearer
+      jira PAT/token: ********
+    Configure confluence? (y/n): y
+      ...
+    ```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    Supported auth types:
+    - **bearer** (default) — Personal Access Token sent as `Authorization: Bearer <pat>`
+    - **basic** — username and token sent as `Authorization: Basic <base64>`
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    After saving, list your profiles and confirm which is active:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    cops auth profiles
+    ```
 
-### Step 3: Go live
+    To switch to a specific profile:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```bash
+    cops auth use dc-prod
+    ```
+
+    <Note>
+    `cops auth login` sets the newly created profile as the current profile automatically. You only need `cops auth use` when switching between multiple profiles.
+    </Note>
+  </Step>
+
+  <Step title="Run a quick product command">
+    With an auth profile active, query any of the four supported products directly.
+
+    <CodeGroup>
+
+    ```bash Jira
+    # Get a single issue
+    cops jira issue get ABC-123
+
+    # Search by JQL with JSON output
+    cops jira issue search --jql "project = ABC AND sprint in openSprints()" --output json
+
+    # Get fixVersion release status (minimal API calls)
+    cops jira release status --project ABC --fixVersion 2026-04-17 --output json
+    ```
+
+    ```bash Confluence
+    # Get a page by ID
+    cops confluence page get 123456
+
+    # Find a page by space key and title
+    cops confluence page by-title --space ENG --title "Release Runbook"
+
+    # Check page freshness (max 30 days old)
+    cops confluence page freshness --pageId 123456 --maxAgeDays 30
+    ```
+
+    ```bash Bitbucket
+    # Get repository details
+    cops bitbucket repo get --project ABC --repo my-service
+
+    # Check whether a release branch exists
+    cops bitbucket branch exists --project ABC --repo my-service --branch release/2026-04-17
+
+    # List open pull requests
+    cops bitbucket pr list --project ABC --repo my-service --output table
+    ```
+
+    ```bash Bamboo
+    # Get plan details
+    cops bamboo plan get ABC-PLAN
+
+    # Get the latest build result
+    cops bamboo build latest --plan ABC-PLAN --output json
+    ```
+
+    </CodeGroup>
+
+    All data commands support three output formats via the `--output` flag:
+
+    | Flag | Description |
+    | --- | --- |
+    | `--output table` | Human-readable table (default) |
+    | `--output json` | Enveloped JSON with `schemaVersion: "v1"` — suitable for scripts and automation |
+    | `--output markdown` | Markdown — suitable for pasting into wikis or PR descriptions |
+
+    You can also send a natural-language query to the [Devin CLI](https://devin.ai) assistant integration:
+
+    ```bash
+    cops ask "What is the status of the story ABC-123?"
+    ```
+
+    <Note>
+    `cops ask` requires the Devin CLI to be available and configured. All other commands work independently.
+    </Note>
+  </Step>
+
+  <Step title="Initialize a release config">
+    cops uses a per-project config file (`cops.project.json`) to define which release gates to run. Generate one from a built-in template:
+
+    ```bash
+    cops init --template backend-service
+    ```
+
+    By default this writes `cops.project.json` to the global config directory (`~/.config/cops/` on Linux/macOS, `%APPDATA%\cops\` on Windows). To write it into the current working directory instead:
+
+    ```bash
+    cops init --template backend-service --target local
+    ```
+
+    Open the generated file and fill in your real project keys, page IDs, plan keys, and repo names.
+
+    Validate that the policy is structurally correct before running checks:
+
+    ```bash
+    cops release policy validate --project backend-service
+    ```
+
+    Then run all configured gates:
+
+    ```bash
+    cops release check --all --project backend-service
+    ```
+
+    Supported gate types include `jira-stories-exist`, `confluence-page-freshness`, `bitbucket-release-branch-exists`, `bamboo-latest-build-success`, and others. See the [configuration guide](/guides/configuration) for the full list.
+
+    <Tip>
+    Use `cops release summary --project backend-service` for a cross-product readiness overview without running individual gates.
+    </Tip>
+  </Step>
+
+  <Step title="Generate and validate release evidence">
+    Once gates pass, generate a versioned evidence artifact that captures the state of each gate at release time:
+
+    ```bash
+    cops release evidence generate --project backend-service --outDir output
+    ```
+
+    This writes two files to `output/`:
+    - `release-evidence-backend-service.json` — structured evidence envelope (`schemaVersion: "v1"`)
+    - `release-evidence-backend-service.md` — human-readable Markdown summary
+
+    Validate the JSON artifact against the v1 contract:
+
+    ```bash
+    cops release evidence validate --file output/release-evidence-backend-service.json --strict
+    ```
+
+    The `--strict` flag treats any gate that did not pass as a validation failure. Omit it to validate the schema only.
+
+    <CodeGroup>
+
+    ```bash Diff two evidence files
+    cops release evidence diff \
+      --before output/release-evidence-backend-service-prev.json \
+      --after output/release-evidence-backend-service.json
+    ```
+
+    ```bash Trend across a directory
+    cops release evidence trend --dir output/
+    ```
+
+    </CodeGroup>
+
+    <Note>
+    Evidence files use a stable `schemaVersion: "v1"` JSON envelope. You can safely consume them in scripts, dashboards, or compliance workflows without worrying about breaking changes between cops versions.
+    </Note>
+  </Step>
+
+</Steps>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Command reference" icon="terminal" href="/commands/init">
+    Full reference for every cops command, flag, and alias.
+  </Card>
+  <Card title="Configuration guide" icon="gear" href="/guides/configuration">
+    Auth profile storage, project config precedence, and all supported gate types.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

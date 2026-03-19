@@ -1,0 +1,148 @@
+---
+title: "cops jira board"
+description: "Find Jira boards by name and inspect board configuration."
+---
+
+The `cops jira board` commands let you discover boards and retrieve their configuration. They call the Jira Agile REST API (`/rest/agile/1.0/board`).
+
+<AccordionGroup>
+
+  <Accordion title="cops jira board lookup" defaultOpen>
+
+    Search for boards by name. Returns all boards whose name contains the given string.
+
+    **Alias:** `cops jira board find`
+
+    ## Usage
+
+    ```bash
+    cops jira board lookup --name <query> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--name" type="string" required>
+      Board name to search. Partial matches are returned.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `name`, `type`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Find boards by name
+    cops jira board lookup --name "Platform"
+    ```
+
+    ```bash JSON output
+    cops jira board lookup --name "Platform" --output json
+    ```
+
+    ```bash Use an alias
+    cops jira board find --name "Platform"
+    ```
+
+    ```bash Override profile
+    cops jira board lookup --name "Platform" --profile dc-staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    id   name                  type
+    ───  ────────────────────  ──────
+    14   Platform Team Board   scrum
+    27   Platform Ops          kanban
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops jira board config">
+
+    Fetch the configuration for a specific board by its numeric ID. Returns the associated filter, project location, and ranking field.
+
+    ## Usage
+
+    ```bash
+    cops jira board config --board <boardId> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--board" type="number" required>
+      Board ID. Use `cops jira board lookup` to find the ID for a board.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `boardId`, `filterId`, `filterName`, `locationProjectKey`, `rankingField`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get board configuration
+    cops jira board config --board 14
+    ```
+
+    ```bash JSON output
+    cops jira board config --board 14 --output json
+    ```
+
+    ```bash Markdown output
+    cops jira board config --board 14 --output markdown
+    ```
+
+    </CodeGroup>
+
+    ```
+    boardId  filterId  filterName              locationProjectKey  rankingField
+    ───────  ────────  ──────────────────────  ──────────────────  ────────────
+    14       10045     Platform Team Filter    PLT                 10100
+    ```
+
+    <Tip>
+      Use the `filterId` value with `cops jira filter get` to inspect the JQL behind the board filter.
+    </Tip>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops jira sprint" icon="list-checks" href="/commands/jira/sprint">
+    List active and past sprints for a board.
+  </Card>
+  <Card title="cops jira filter" icon="filter" href="/commands/jira/filter">
+    Inspect the JQL behind a board's saved filter.
+  </Card>
+</Columns>

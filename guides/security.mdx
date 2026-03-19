@@ -1,0 +1,78 @@
+---
+title: "Security"
+description: "Credential storage, PAT best practices, TLS verification, the cops ask permission model, and vulnerability reporting."
+---
+
+## Credential storage
+
+cops stores auth profiles in a single JSON file on the local filesystem:
+
+| Platform | Path |
+| --- | --- |
+| Linux / macOS | `~/.config/cops/config.json` |
+| Windows | `%APPDATA%\cops\config.json` |
+
+Credentials — including PATs and basic auth passwords — are stored as **plain text in JSON**. There is no encryption at rest.
+
+<Warning>
+Never commit `config.json` to version control. Add it to `.gitignore` and ensure it does not appear in backups that are accessible to other users.
+</Warning>
+
+On Linux and macOS, cops sets the file permissions to `0600` (owner read/write only) every time it writes the config. This prevents other users on the same system from reading the file. On Windows, rely on standard user directory ACLs.
+
+## PAT best practices
+
+- **Minimal scope**: Generate PATs with only the permissions cops needs. For read-only commands, use read-only scopes. For release evidence and checks, only the querying permissions are required — no write access.
+- **Short expiry**: Set an expiry date on PATs. Rotate them on the same schedule as your organisation's credential rotation policy.
+- **Per-environment profiles**: Use separate profiles for production and non-production environments. Do not reuse production PATs for development or testing.
+- **Dedicated service accounts**: In CI/CD pipelines, use a dedicated service account with minimal permissions rather than a personal user account.
+
+<Tip>
+Name your profiles clearly to reflect the environment, for example `dc-prod`, `dc-staging`, `dc-dev`. This makes it harder to accidentally run a destructive command against the wrong environment.
+</Tip>
+
+## TLS verification and the `--insecure` flag
+
+By default, cops validates TLS certificates for all HTTPS connections. This ensures you are communicating with the real server and that traffic is not intercepted.
+
+The `--insecure` flag disables TLS certificate validation.
+
+<Warning>
+Only use `--insecure` when connecting to internal Atlassian Data Center instances that use self-signed certificates on a trusted private network. Never use `--insecure` against public endpoints or over untrusted networks. Disabling certificate validation exposes you to man-in-the-middle attacks.
+</Warning>
+
+Common legitimate use case:
+
+```bash
+# Internal instance with a self-signed cert on a VPN-only network
+cops jira release status \
+  --project IP \
+  --fixVersion 2026-04-17 \
+  --output json \
+  --insecure
+```
+
+If you find yourself using `--insecure` regularly against a production instance, the correct fix is to install a valid TLS certificate on the server, not to disable validation in cops.
+
+## `cops ask` and Devin CLI
+
+The `cops ask` command delegates natural-language prompts to the [Devin CLI](https://devin.ai). cops itself does not process or store the prompt content.
+
+The Devin permission mode controls what Devin is allowed to do autonomously:
+
+| Mode | Behaviour |
+| --- | --- |
+| `auto` (default) | Devin decides autonomously which actions to take |
+| Dangerous (`-y` flag) | Devin CLI dangerous permission mode — allows broader autonomous actions |
+
+The default permission mode is `auto`. You can override it via the `COPS_DEVIN_PERMISSION_MODE` environment variable.
+
+<Warning>
+Passing `-y` to `cops ask` enables Devin CLI's dangerous permission mode. Only do this in controlled, sandboxed environments where unintended autonomous actions are acceptable. Do not use `-y` in production environments.
+</Warning>
+
+Devin CLI is optional. All other cops commands work independently without it.
+
+## Reporting vulnerabilities
+
+If you discover a security vulnerability in cops, report it following the guidelines in [`SECURITY.md`](https://github.com/Ramgopalbhat10/cops-cli/blob/main/SECURITY.md) in the repository rather than opening a public issue. This allows the maintainers to assess and fix the issue before public disclosure.

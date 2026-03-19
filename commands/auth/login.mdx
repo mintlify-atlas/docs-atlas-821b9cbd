@@ -1,0 +1,114 @@
+---
+title: "cops auth login"
+description: "Run the interactive login wizard to create or update a named auth profile for Jira, Confluence, Bitbucket, and Bamboo."
+---
+
+`cops auth login` walks you through a series of prompts to configure a named profile. Each profile stores the base URLs and credentials for one or more Atlassian Data Center products. After saving, the new profile is automatically set as the active profile.
+
+## Usage
+
+```bash
+cops auth login
+```
+
+This command takes no flags. All input is collected interactively.
+
+## Interactive wizard
+
+The wizard prompts for:
+
+1. **Profile name** — a short identifier you choose (e.g. `dc-prod`, `staging`). If a profile with this name already exists, it is overwritten.
+2. For each product (`jira`, `confluence`, `bitbucket`, `bamboo`) — whether to configure it, and if so:
+   - Base URL (e.g. `https://jira.example.com`)
+   - Auth type: `bearer` (default) or `basic`
+   - Credentials for the chosen auth type
+
+Example session:
+
+```
+Profile name (e.g. dc-prod): dc-prod
+Configure jira? (y/n): y
+  jira base URL (e.g. https://jira.company.com): https://jira.example.com
+  jira auth type [bearer/basic] (default: bearer): bearer
+  jira PAT/token: ••••••••
+Configure confluence? (y/n): y
+  confluence base URL (e.g. https://confluence.company.com): https://confluence.example.com
+  confluence auth type [bearer/basic] (default: bearer): basic
+  confluence username: svc-account
+  confluence token/password: ••••••••
+Configure bitbucket? (y/n): y
+  bitbucket base URL (e.g. https://bitbucket.company.com): https://bitbucket.example.com
+  bitbucket auth type [bearer/basic] (default: bearer): bearer
+  bitbucket PAT/token: ••••••••
+Configure bamboo? (y/n): n
+Saved profile 'dc-prod' and set as current.
+```
+
+You can skip any product by entering `n`. Only the products you configure will have entries in the saved profile.
+
+## Auth types
+
+<AccordionGroup>
+
+  <Accordion title="Bearer token (default)">
+    Sends your Personal Access Token in the `Authorization: Bearer <pat>` header.
+
+    This is the recommended auth type for Atlassian Data Center. Generate a PAT in your Atlassian product under **Profile > Personal Access Tokens**.
+
+    ```json
+    {
+      "baseUrl": "https://jira.example.com",
+      "authType": "bearer",
+      "pat": "<your-pat>"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Basic auth">
+    Sends your username and token as a Base64-encoded `Authorization: Basic <base64(username:token)>` header.
+
+    Use basic auth when your instance does not support PATs or when you need to authenticate with a service account username and password.
+
+    ```json
+    {
+      "baseUrl": "https://jira.example.com",
+      "authType": "basic",
+      "username": "service-account",
+      "token": "<password-or-token>"
+    }
+    ```
+  </Accordion>
+
+</AccordionGroup>
+
+## Where credentials are stored
+
+Profiles are saved to a single `config.json` file:
+
+| Platform | Path |
+| --- | --- |
+| Linux / macOS | `~/.config/cops/config.json` |
+| Windows | `%APPDATA%\cops\config.json` |
+
+On Linux and macOS, cops sets the file permissions to `0600` (owner read/write only) every time it writes the config.
+
+<Warning>
+Do not commit `config.json` to version control. It stores credentials in plain text. See [Security](/guides/security) for guidance on PAT rotation and access restriction.
+</Warning>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops auth profiles" icon="list" href="/commands/auth/profiles">
+    List all configured profiles and see which is active.
+  </Card>
+  <Card title="cops auth use" icon="toggle-right" href="/commands/auth/use">
+    Switch the active profile.
+  </Card>
+  <Card title="Auth profiles guide" icon="book" href="/guides/auth-profiles">
+    In-depth guide to profile structure and management.
+  </Card>
+  <Card title="Security" icon="shield" href="/guides/security">
+    PAT rotation, file permissions, and credential hygiene.
+  </Card>
+</Columns>

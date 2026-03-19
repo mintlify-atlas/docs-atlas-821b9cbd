@@ -1,0 +1,96 @@
+---
+title: "Introduction"
+description: "cops is the Core Operations CLI for Atlassian Data Center products — one tool to query Jira, Confluence, Bitbucket, and Bamboo, plus a declarative release gate system."
+---
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install cops from source or via a packed tarball. Requires Node.js 20+.
+  </Card>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Configure your first auth profile and run your first cross-product command in minutes.
+  </Card>
+  <Card title="Command Reference" icon="terminal" href="/commands/init">
+    Complete reference for every command, subcommand, and flag.
+  </Card>
+  <Card title="Release Gates" icon="shield-check" href="/release-gates/overview">
+    Declarative release readiness checks with evidence generation and contract validation.
+  </Card>
+</CardGroup>
+
+## Why cops?
+
+Teams running **Atlassian Data Center** (self-hosted Jira, Confluence, Bitbucket, Bamboo) often need to:
+
+- Query multiple products during release planning and execution
+- Verify cross-product release readiness — stories closed? docs updated? branch exists? builds green?
+- Generate auditable release evidence for compliance
+- Script repetitive checks in CI/CD pipelines
+
+Without `cops`, this means juggling REST API calls across four products, handling auth separately for each, and building one-off scripts that break when APIs change.
+
+`cops` gives you **one CLI, one auth config, one consistent output format** across all four products, plus a declarative release gate system that can be version-controlled alongside your project.
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  CLI Commands (oclif)                                    │
+│  cops jira │ confluence │ bitbucket │ bamboo │ release   │
+├──────────────────────────────────────────────────────────┤
+│  Core Layer                                              │
+│  auth · config-store · project-config · release-gates    │
+│  output (table/json/markdown) · http (retry + backoff)   │
+├──────────────────────────────────────────────────────────┤
+│  Product Clients                                         │
+│  jira.ts · confluence.ts · bitbucket.ts · bamboo.ts      │
+├──────────────────────────────────────────────────────────┤
+│  Atlassian Data Center REST APIs                         │
+└──────────────────────────────────────────────────────────┘
+```
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Multi-product queries" icon="network-wired">
+    Query Jira issues, Confluence pages, Bitbucket repos, and Bamboo builds — all from one CLI with one auth config.
+  </Card>
+  <Card title="Auth profile management" icon="key">
+    Named profiles for multiple Data Center instances. Switch with a single command.
+  </Card>
+  <Card title="Release gate system" icon="gate">
+    Declarative `cops.project.json` config with 10+ gate types covering all four products.
+  </Card>
+  <Card title="Release evidence" icon="file-certificate">
+    Generate, validate, diff, and trend JSON evidence artifacts for compliance and audit.
+  </Card>
+  <Card title="Dynamic repo discovery" icon="magnifying-glass">
+    Discover in-scope repos from Jira dev-status links — no static repo lists needed.
+  </Card>
+  <Card title="Stable JSON output" icon="brackets-curly">
+    All data commands support `--output json` with envelope schema version for automation.
+  </Card>
+</CardGroup>
+
+## Supported products
+
+| Product | Data Center version | Capabilities |
+|---------|-------------------|--------------|
+| **Jira** | Data Center | Issues, boards, sprints, filters, release status, dev-status |
+| **Confluence** | Data Center | Pages, search, freshness checks, section validation |
+| **Bitbucket** | Data Center | Repos, branches, PRs, commits, build statuses |
+| **Bamboo** | Data Center | Plans, builds, deployment environments, results |
+
+## Output formats
+
+Every data command in `cops` supports three output modes:
+
+```bash
+cops jira issue get ABC-123 --output table     # Default — human-readable table
+cops jira issue get ABC-123 --output json      # JSON envelope with schemaVersion: "v1"
+cops jira issue get ABC-123 --output markdown  # Markdown table for docs/reports
+```
+
+<Note>
+The `--output json` format uses a stable `schemaVersion: "v1"` envelope, making it safe to consume in automation scripts and CI pipelines without worrying about breaking changes.
+</Note>

@@ -1,0 +1,120 @@
+---
+title: "Installation"
+description: "Install cops on macOS, Linux, or Windows. Requires Node.js 20 or later."
+---
+
+## Requirements
+
+- **Node.js >= 20** — cops is a Node.js CLI. Run `node --version` to check your version.
+- **Access to Atlassian Data Center instances** — you need network access to one or more self-hosted Jira, Confluence, Bitbucket, or Bamboo instances and a Personal Access Token (PAT) or username/token for each.
+
+<Note>
+cops targets **Atlassian Data Center** (self-hosted). It is not designed for Atlassian Cloud.
+</Note>
+
+## Installation methods
+
+<CodeGroup>
+
+```bash From source
+git clone https://github.com/user/cops.git
+cd cops
+npm install
+npm run build
+npm link
+```
+
+```bash Package + global install
+npm run pack:internal
+npm i -g ./cops-0.1.0.tgz
+```
+
+</CodeGroup>
+
+### From source
+
+Use this method when you want to track the latest commits or contribute to the project.
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/user/cops.git
+    cd cops
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Build the project">
+    Compiles TypeScript to `lib/` and generates the oclif command manifest.
+
+    ```bash
+    npm run build
+    ```
+  </Step>
+  <Step title="Link the binary globally">
+    Creates a global `cops` symlink pointing to your local build.
+
+    ```bash
+    npm link
+    ```
+  </Step>
+</Steps>
+
+### Package + global install
+
+Use this method for a stable, self-contained tarball — the recommended approach for sharing with teammates or installing in CI environments.
+
+<Steps>
+  <Step title="Run the internal pack script">
+    This runs `typecheck`, `lint`, `test`, and `build` before packing to ensure the tarball is clean.
+
+    ```bash
+    npm run pack:internal
+    ```
+
+    This produces `cops-0.1.0.tgz` in the project root.
+  </Step>
+  <Step title="Install the tarball globally">
+    ```bash
+    npm i -g ./cops-0.1.0.tgz
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+To upgrade, repeat the pack and install steps with the new tarball. npm will replace the existing global installation.
+</Tip>
+
+## Verify the installation
+
+After either installation method, confirm that the `cops` binary is on your PATH:
+
+```bash
+cops --version
+cops --help
+```
+
+You should see the version string and the full command listing. If the command is not found, check that your global npm bin directory is on your `PATH`.
+
+```bash
+npm config get prefix
+# Add <prefix>/bin to your PATH if needed
+```
+
+## Configuration file locations
+
+Once installed, cops stores auth profiles and project config in a platform-specific directory — no manual setup required.
+
+| Platform | Config directory |
+| --- | --- |
+| Linux / macOS | `~/.config/cops/` |
+| Windows | `%APPDATA%\cops\` |
+
+The main config file is `config.json` in that directory. On Linux and macOS it is automatically restricted to `0600` (owner read/write only).
+
+<Warning>
+Auth profiles contain PATs and tokens stored as plain JSON. Do not commit the config directory to version control. Use short-lived PATs with minimal scopes and rotate them regularly.
+</Warning>

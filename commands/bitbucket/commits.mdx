@@ -1,0 +1,173 @@
+---
+title: "cops bitbucket commits"
+description: "List Bitbucket commits for a repository or branch, and inspect CI build statuses for a specific commit."
+---
+
+The `cops bitbucket commits` commands let you browse commit history and check CI build results. They call the Bitbucket REST API (`/rest/api/1.0`) and the Bitbucket build-status API (`/rest/build-status/1.0`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bitbucket commits list" defaultOpen>
+
+    List commits for a Bitbucket repository. Optionally scope the listing to a specific branch.
+
+    **Alias:** `cops bitbucket commits ls`
+
+    ## Usage
+
+    ```bash
+    cops bitbucket commits list --project <projectKey> --repo <repoSlug> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string" required>
+      Bitbucket project key (e.g. `MYPROJ`).
+    </ParamField>
+
+    <ParamField path="--repo" type="string" required>
+      Bitbucket repository slug (e.g. `my-service`).
+    </ParamField>
+
+    <ParamField path="--branch" type="string">
+      Branch name to scope the commit listing to (without the `refs/heads/` prefix). If omitted, commits from all branches are returned.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="50">
+      Maximum number of commits to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `shortId`, `author`, `message`, `timestamp`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash List recent commits on the default branch
+    cops bitbucket commits list --project MYPROJ --repo my-service
+    ```
+
+    ```bash List commits on a specific branch
+    cops bitbucket commits list --project MYPROJ --repo my-service --branch release/2026-06
+    ```
+
+    ```bash Limit to 10 commits
+    cops bitbucket commits list --project MYPROJ --repo my-service --limit 10
+    ```
+
+    ```bash JSON output
+    cops bitbucket commits list --project MYPROJ --repo my-service --output json
+    ```
+
+    ```bash Use an alias
+    cops bitbucket commits ls --project MYPROJ --repo my-service --branch main
+    ```
+
+    </CodeGroup>
+
+    ```
+    id                                        shortId   author         message                        timestamp
+    ────────────────────────────────────────  ────────  ─────────────  ─────────────────────────────  ─────────────
+    a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2  a1b2c3d4  Alice Example  Bump dependency versions       1742000000000
+    9f8e7d6c5b4a9f8e7d6c5b4a9f8e7d6c5b4a9f8e  9f8e7d6c  Bob Example    Add retry logic to auth client  1741900000000
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops bitbucket commit build-status">
+
+    Get CI build statuses for a specific commit SHA. Returns all build status entries reported by connected CI systems.
+
+    **Alias:** `cops bitbucket commit status`
+
+    ## Usage
+
+    ```bash
+    cops bitbucket commit build-status <commit> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `commit` | Yes | Full commit SHA |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `key`, `name`, `state`, `description`, `url`, `dateAdded`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get build status for a commit
+    cops bitbucket commit build-status a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+    ```
+
+    ```bash JSON output
+    cops bitbucket commit build-status a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2 --output json
+    ```
+
+    ```bash Use an alias
+    cops bitbucket commit status a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+    ```
+
+    ```bash Override profile
+    cops bitbucket commit build-status a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2 --profile dc-staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    key              name          state      description         url                                         dateAdded
+    ───────────────  ────────────  ─────────  ──────────────────  ──────────────────────────────────────────  ─────────────
+    bamboo-build-1   Unit Tests    SUCCESSFUL  All tests passed    https://bamboo.example.com/browse/MYP-JOB1  1742000000000
+    bamboo-build-2   Integration   FAILED      2 tests failed      https://bamboo.example.com/browse/MYP-JOB2  1742000100000
+    ```
+
+    <Note>
+      Build status entries are reported by CI tools integrated with your Bitbucket Data Center instance (e.g. Bamboo). If no integrations are configured, the output will be empty.
+    </Note>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bitbucket branch" icon="git-branch" href="/commands/bitbucket/branch">
+    List branches and check whether a branch exists.
+  </Card>
+  <Card title="cops bitbucket pr" icon="git-pull-request" href="/commands/bitbucket/pr">
+    List pull requests and run PR readiness checks.
+  </Card>
+</Columns>

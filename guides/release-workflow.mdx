@@ -1,0 +1,212 @@
+---
+title: "Release workflow"
+description: "End-to-end guide for setting up release gates, running checks, generating evidence, and verifying release readiness."
+---
+
+cops provides a declarative release gate system that you define once in `cops.project.json`, then run against live Atlassian Data Center APIs at release time. This page walks through the full workflow from initial setup to auditable evidence.
+
+## End-to-end release workflow
+
+<Steps>
+
+  <Step title="Create a release config from a template">
+    Generate a `cops.project.json` in the global config directory using a built-in template:
+
+    ```bash
+    cops init --template backend-service
+    ```
+
+    To write it into the current directory instead (useful for repo-local configs):
+
+    ```bash
+    cops init --template backend-service --target local
+    ```
+
+    The generated file contains a full set of gates, most of them disabled. You enable and configure only the ones relevant to your project.
+  </Step>
+
+  <Step title="Fill in your project details">
+    Open the generated `cops.project.json` and replace the placeholder values with your actual project identifiers:
+
+    ```json
+    {
+      "defaultProject": "my-service",
+      "projects": {
+        "my-service": {
+          "jira": {
+            "projectKey": "IP",
+            "fixVersion": "2026-04-17",
+            "readyStatuses": ["Ready for Release", "Done", "Closed", "Resolved"]
+          },
+          "confluence": {
+            "requiredPages": [
+              { "spaceKey": "ENG", "title": "Service Deployment Playbook" }
+            ]
+          },
+          "bitbucket": {
+            "projectKey": "MYTEAM",
+            "repo": "my-service",
+            "releaseBranch": "release/2026-04-17"
+          },
+          "bamboo": {
+            "requiredPlans": ["MYTEAM-PLAN"]
+          },
+          "gates": [
+            {
+              "id": "jira-stories",
+              "type": "jira-stories-exist",
+              "enabled": true,
+              "severity": "high"
+            },
+            {
+              "id": "confluence-doc",
+              "type": "confluence-page-exists",
+              "enabled": true,
+              "severity": "high"
+            },
+            {
+              "id": "release-branch",
+              "type": "bitbucket-release-branch-exists",
+              "enabled": true,
+              "severity": "high"
+            },
+            {
+              "id": "bamboo-latest-build",
+              "type": "bamboo-latest-build-success",
+              "enabled": true,
+              "severity": "high"
+            }
+          ]
+        }
+      }
+    }
+    ```
+
+    See [Configuration](/guides/configuration) for full documentation of every field.
+  </Step>
+
+  <Step title="Validate the release policy">
+    Before running live checks, validate that the config is structurally correct:
+
+    ```bash
+    cops release policy validate --project my-service
+    ```
+
+    This catches duplicate gate IDs, unsupported gate types, missing required parameters, and invalid values. Fix any errors before proceeding.
+  </Step>
+
+  <Step title="Run all release gates">
+    Execute all enabled gates against the live APIs:
+
+    ```bash
+    cops release check --all --project my-service
+    ```
+
+    Each gate returns one of four statuses:
+
+    | Status | Meaning |
+    | --- | --- |
+    | `pass` | Gate condition met |
+    | `warn` | Gate condition not met, but severity is `low` or `medium` (non-blocking) |
+    | `fail` | Gate condition not met and severity is `high` or `critical` (blocking) |
+    | `waived` | Gate failed but a valid waiver is in place |
+
+    Resolve any blocking gates before generating evidence.
+
+    <Tip>
+    Use `cops release summary --project my-service` for a quicker cross-product overview that does not run the full gate policy.
+    </Tip>
+  </Step>
+
+  <Step title="Generate release evidence">
+    Once all required gates pass, generate a timestamped evidence artifact:
+
+    ```bash
+    cops release evidence generate --project my-service --outDir output
+    ```
+
+    This writes two files to `output/`:
+
+    - `release-evidence-my-service.json` — structured JSON evidence envelope (`schemaVersion: "v1"`)
+    - `release-evidence-my-service.md` — human-readable Markdown summary
+
+    The JSON artifact captures each gate's status, severity, owner, waiver state, and details at the point of generation. It is suitable for storage in artifact repositories, compliance systems, or audit trails.
+  </Step>
+
+  <Step title="Validate the evidence artifact">
+    Confirm the generated evidence meets the v1 contract and that all gates passed:
+
+    ```bash
+    cops release evidence validate \
+      --file output/release-evidence-my-service.json \
+      --strict
+    ```
+
+    `--strict` treats any gate that did not reach `pass` or `waived` as a validation failure. Omit `--strict` to check the schema only.
+  </Step>
+
+</Steps>
+
+## Fast Jira release snapshot
+
+When you only need Jira release state and issue status rollups for a fixVersion — without running the full gate policy — use `jira release status`. It is optimised to make a minimum number of API calls:
+
+<CodeGroup>
+
+```bash By project key
+cops jira release status \
+  --project IP \
+  --fixVersion 2026-04-17 \
+  --output json \
+  --insecure
+```
+
+```bash By project name
+cops jira release status \
+  --projectName "Intranet Portal" \
+  --fixVersion 2026-04-17 \
+  --output json \
+  --insecure
+```
+
+</CodeGroup>
+
+Pass exactly one of `--project` (key) or `--projectName`. The command makes:
+- 1 API call for project versions (to resolve `released`/`unreleased` state)
+- 1 API call for issue search (plus pagination only when issue count exceeds `--pageSize`)
+
+Status category counts and per-status breakdowns are aggregated client-side.
+
+## Operational readiness checklist
+
+Before distributing a release tarball, run the operational checklist to verify your local working tree is ready:
+
+```bash
+cops release checklist
+```
+
+This checks for:
+- `CHANGELOG.md` presence and a populated `## [Unreleased]` section
+- `verify` and `pack` scripts in `package.json`
+- CI workflow file presence
+- A built tarball ready for distribution
+
+## Comparing evidence across releases
+
+You can diff two evidence files or trend gate results across a directory of evidence artifacts:
+
+<CodeGroup>
+
+```bash Diff two releases
+cops release evidence diff \
+  --before output/release-evidence-my-service-prev.json \
+  --after output/release-evidence-my-service.json
+```
+
+```bash Trend across a directory
+cops release evidence trend --dir output/
+```
+
+</CodeGroup>
+
+The diff shows which gates changed status between two releases. The trend command summarises pass/fail rates across all evidence files in the directory.

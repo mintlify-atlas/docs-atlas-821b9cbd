@@ -1,0 +1,96 @@
+---
+title: "cops bamboo plan"
+description: "Fetch Bamboo plan details by plan key."
+---
+
+The `cops bamboo plan` commands let you inspect Bamboo build plans. They call the Bamboo REST API (`/rest/api/latest/plan`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bamboo plan get" defaultOpen>
+
+    Fetch details for a Bamboo build plan by its plan key.
+
+    **Alias:** `cops bamboo plan details`
+
+    ## Usage
+
+    ```bash
+    cops bamboo plan get <planKey> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Description |
+    | --- | --- |
+    | `<planKey>` | Bamboo plan key (e.g. `PROJ-PLAN`). Required. |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `key`, `shortKey`, `name`, `enabled`, `active`, `lifecycle`
+
+    | Column | Description |
+    | --- | --- |
+    | `key` | Full plan key (e.g. `PROJ-PLAN`) |
+    | `shortKey` | Short plan key |
+    | `name` | Human-readable plan name |
+    | `enabled` | Whether the plan is enabled |
+    | `active` | Whether the plan is active |
+    | `lifecycle` | Plan lifecycle state (e.g. `ACTIVE`) |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get plan details
+    cops bamboo plan get PROJ-PLAN
+    ```
+
+    ```bash JSON output
+    cops bamboo plan get PROJ-PLAN --output json
+    ```
+
+    ```bash Use an alias
+    cops bamboo plan details PROJ-PLAN
+    ```
+
+    ```bash Use a specific profile
+    cops bamboo plan get PROJ-PLAN --profile staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    key        shortKey  name            enabled  active  lifecycle
+    ─────────  ────────  ──────────────  ───────  ──────  ─────────
+    PROJ-PLAN  PLAN      My Build Plan   true     true    ACTIVE
+    ```
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bamboo build" icon="hammer" href="/commands/bamboo/build">
+    Get the latest build result for a plan.
+  </Card>
+  <Card title="cops bamboo deploy" icon="rocket" href="/commands/bamboo/deploy">
+    Inspect deployment environments.
+  </Card>
+</Columns>

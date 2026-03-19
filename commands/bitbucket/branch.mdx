@@ -1,0 +1,180 @@
+---
+title: "cops bitbucket branch"
+description: "List branches in a Bitbucket repository and check whether a specific branch exists."
+---
+
+The `cops bitbucket branch` commands let you inspect branches in a Bitbucket repository. They call the Bitbucket REST API (`/rest/api/1.0`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bitbucket branch list" defaultOpen>
+
+    List branches in a Bitbucket repository. Supports optional name filtering.
+
+    **Alias:** `cops bitbucket branch ls`
+
+    ## Usage
+
+    ```bash
+    cops bitbucket branch list --project <projectKey> --repo <repoSlug> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string" required>
+      Bitbucket project key (e.g. `MYPROJ`).
+    </ParamField>
+
+    <ParamField path="--repo" type="string" required>
+      Bitbucket repository slug (e.g. `my-service`).
+    </ParamField>
+
+    <ParamField path="--filter" type="string" default="">
+      Optional branch name filter. Passes the value as `filterText` to the Bitbucket API — returns branches whose names contain this string.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="50">
+      Maximum number of branches to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `name`, `latestCommit`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash List all branches
+    cops bitbucket branch list --project MYPROJ --repo my-service
+    ```
+
+    ```bash Filter by name prefix
+    cops bitbucket branch list --project MYPROJ --repo my-service --filter release
+    ```
+
+    ```bash Return up to 100 branches
+    cops bitbucket branch list --project MYPROJ --repo my-service --limit 100
+    ```
+
+    ```bash JSON output
+    cops bitbucket branch list --project MYPROJ --repo my-service --output json
+    ```
+
+    ```bash Use an alias
+    cops bitbucket branch ls --project MYPROJ --repo my-service
+    ```
+
+    </CodeGroup>
+
+    ```
+    id                           name          latestCommit
+    ───────────────────────────  ────────────  ────────────────────────────────────────
+    refs/heads/main              main          a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+    refs/heads/release/2026-06   release/2026-06  9f8e7d6c5b4a9f8e7d6c5b4a9f8e7d6c5b4a9f8e
+    refs/heads/feature/auth      feature/auth  1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops bitbucket branch exists">
+
+    Check whether a specific branch exists in a Bitbucket repository. Exits with code `1` if the branch is not found.
+
+    ## Usage
+
+    ```bash
+    cops bitbucket branch exists --project <projectKey> --repo <repoSlug> --branch <branchName> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string" required>
+      Bitbucket project key (e.g. `MYPROJ`).
+    </ParamField>
+
+    <ParamField path="--repo" type="string" required>
+      Bitbucket repository slug (e.g. `my-service`).
+    </ParamField>
+
+    <ParamField path="--branch" type="string" required>
+      Branch name to check (e.g. `release/2026-06`).
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `project`, `repo`, `branch`, `exists`
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | Branch exists |
+    | `1` | Branch does not exist |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Check for a release branch
+    cops bitbucket branch exists --project MYPROJ --repo my-service --branch release/2026-06
+    ```
+
+    ```bash JSON output
+    cops bitbucket branch exists --project MYPROJ --repo my-service --branch release/2026-06 --output json
+    ```
+
+    ```bash Use in CI (non-zero exit on missing branch)
+    cops bitbucket branch exists --project MYPROJ --repo my-service --branch release/2026-06 || exit 1
+    ```
+
+    </CodeGroup>
+
+    ```
+    project  repo        branch           exists
+    ───────  ──────────  ───────────────  ──────
+    MYPROJ   my-service  release/2026-06  true
+    ```
+
+    <Tip>
+      Use `cops bitbucket branch exists` in release pipelines to verify that a release branch has been cut before proceeding.
+    </Tip>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bitbucket repo" icon="database" href="/commands/bitbucket/repo">
+    Fetch repository details.
+  </Card>
+  <Card title="cops bitbucket pr" icon="git-pull-request" href="/commands/bitbucket/pr">
+    List pull requests and run PR readiness checks.
+  </Card>
+</Columns>

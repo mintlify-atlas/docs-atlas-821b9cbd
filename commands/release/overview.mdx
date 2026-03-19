@@ -1,0 +1,68 @@
+---
+title: "Release commands"
+description: "Command reference for all cops release subcommands — check, summary, checklist, repos, projects, and evidence."
+---
+
+The `cops release` command group provides release readiness, gating, and evidence operations. Commands read configuration from `cops.project.json` and, where applicable, call Jira, Confluence, Bitbucket, and Bamboo APIs using the active profile.
+
+## Quick reference
+
+| Command | Description |
+| --- | --- |
+| `cops release check` | Run release gates defined in `cops.project.json` |
+| `cops release summary` | Cross-product release readiness summary |
+| `cops release checklist` | Operational release checklist for verify/pack/distribute workflow |
+| `cops release repos discover` | Discover release repos from Jira dev-status links |
+| `cops release projects list` | List projects configured in `cops.project.json` |
+| `cops release projects show` | Show resolved release configuration for a project |
+| `cops release projects migrate` | Migrate legacy release config to the projects format |
+| `cops release evidence generate` | Generate release evidence artifacts from configured gates |
+| `cops release evidence validate` | Validate a release evidence JSON artifact |
+| `cops release evidence diff` | Diff two release evidence JSON artifacts |
+| `cops release evidence trend` | Analyze gate status trend across evidence artifacts |
+
+## Command groups
+
+<CardGroup cols={2}>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run policy-based release gates and block deployment on failures.
+  </Card>
+  <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
+    Get a cross-product release readiness summary across Jira, Confluence, Bitbucket, and Bamboo.
+  </Card>
+  <Card title="cops release checklist" icon="list-check" href="/commands/release/checklist">
+    Run the operational release checklist for verify, pack, and distribute steps.
+  </Card>
+  <Card title="cops release repos discover" icon="magnifying-glass" href="/commands/release/repos-discover">
+    Dynamically discover release repos from Jira dev-status links.
+  </Card>
+  <Card title="cops release projects" icon="folder" href="/commands/release/projects">
+    List, inspect, and migrate projects in `cops.project.json`.
+  </Card>
+  <Card title="cops release evidence" icon="file-lines" href="/commands/release/evidence">
+    Generate, validate, diff, and trend release evidence artifacts.
+  </Card>
+</CardGroup>
+
+## Configuration
+
+Most `cops release` commands require a `cops.project.json` file. Run `cops init` to create one.
+
+```bash
+cops init
+```
+
+Use `--project <key>` to select a named project when `cops.project.json` contains multiple projects under the `projects` map.
+
+## Common flags
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--output` | `table` \| `json` \| `markdown` | `table` | Output format |
+| `--insecure` | boolean | `false` | Disable TLS certificate validation |
+| `--profile` | string | active profile | Override the active config profile |
+| `--project` | string | default project | Project key from `cops.project.json` |
+
+<Warning>
+`--insecure` disables TLS certificate validation and exposes traffic to MITM attacks. Use it only with self-signed certificates in trusted networks.
+</Warning>

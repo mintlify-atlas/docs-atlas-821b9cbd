@@ -1,0 +1,68 @@
+---
+title: "cops auth logout"
+description: "Unset the active auth profile. The profile is kept; only the active selection is cleared."
+---
+
+`cops auth logout` clears the `currentProfile` pointer in `config.json`. The profile itself — including all stored credentials and URLs — is **not deleted**. You can reactivate it at any time with `cops auth use <name>`.
+
+## Usage
+
+```bash
+cops auth logout
+```
+
+This command takes no flags or arguments.
+
+## Examples
+
+<CodeGroup>
+
+```bash Clear the active profile
+cops auth logout
+```
+
+</CodeGroup>
+
+After running the command:
+
+```
+Current profile cleared. Use `cops auth use <profile>` or `cops auth login`.
+```
+
+## What happens after logout
+
+With no active profile set, any cops command that requires authentication will exit with an error:
+
+```
+No profile selected. Run: cops auth login
+```
+
+To resume normal operation, either reactivate an existing profile or create a new one:
+
+```bash
+# Reactivate an existing profile
+cops auth use dc-prod
+
+# Or create a new profile
+cops auth login
+```
+
+## Notes
+
+<Note>
+`cops auth logout` does not delete the profile or its credentials. To permanently remove a profile, use `cops auth delete <name>`.
+</Note>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops auth use" icon="toggle-right" href="/commands/auth/use">
+    Reactivate a saved profile.
+  </Card>
+  <Card title="cops auth login" icon="key" href="/commands/auth/login">
+    Create a new profile.
+  </Card>
+  <Card title="cops auth delete" icon="trash" href="/commands/auth/delete">
+    Permanently delete a profile.
+  </Card>
+</Columns>

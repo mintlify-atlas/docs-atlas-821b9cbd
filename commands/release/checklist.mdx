@@ -1,0 +1,133 @@
+---
+title: "cops release checklist"
+description: "Run the operational release checklist for verify, pack, and distribute steps."
+---
+
+`cops release checklist` inspects the current working directory for the prerequisites of a verify/pack/distribute release workflow. It reads `package.json` and checks for the presence of required scripts, the CHANGELOG, a CI workflow file, and a release tarball.
+
+## Usage
+
+```bash
+cops release checklist [flags]
+```
+
+## Flags
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+## Checks
+
+| Check | Status logic |
+| --- | --- |
+| `changelog_unreleased` | `pass` when `CHANGELOG.md` contains `## [Unreleased]`; `warn` otherwise |
+| `verify_script` | `pass` when `package.json` defines a `verify` script; `warn` otherwise |
+| `pack_internal_script` | `pass` when `package.json` defines a `pack:internal` script; `warn` otherwise |
+| `ci_workflow` | `pass` when `.github/workflows/ci.yml` exists; `warn` otherwise |
+| `tarball_present` | `pass` when a `<name>-<version>.tgz` tarball matching `package.json` name and version exists; `warn` otherwise |
+| `distribution_steps` | Always `warn` — reminder to publish/share the tarball after packing |
+
+## Output columns
+
+`check`, `status`, `details`
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | All checks passed |
+| `2` | One or more checks produced a `warn` result |
+
+## Recommended workflow
+
+<Steps>
+  <Step title="Update CHANGELOG.md">
+    Add or update the `## [Unreleased]` section with all changes for this release.
+
+    ```bash
+    # Verify the section is present
+    grep '## \[Unreleased\]' CHANGELOG.md
+    ```
+  </Step>
+  <Step title="Add required scripts to package.json">
+    Ensure `verify` (typecheck + test + build) and `pack:internal` (verify + pack) scripts are defined.
+
+    ```json
+    {
+      "scripts": {
+        "verify": "npm run typecheck && npm test && npm run build",
+        "pack:internal": "npm run verify && npm pack"
+      }
+    }
+    ```
+  </Step>
+  <Step title="Create a CI workflow">
+    Add `.github/workflows/ci.yml` to run typecheck, test, build, and pack on every push.
+  </Step>
+  <Step title="Run pack:internal">
+    Generate the release tarball.
+
+    ```bash
+    npm run pack:internal
+    ```
+  </Step>
+  <Step title="Run the checklist">
+    Verify all prerequisites are met before distributing.
+
+    ```bash
+    cops release checklist
+    ```
+  </Step>
+  <Step title="Distribute the tarball">
+    Publish or share the tarball, then install it globally.
+
+    ```bash
+    npm i -g ./<name>-<version>.tgz
+    ```
+  </Step>
+</Steps>
+
+## Examples
+
+<CodeGroup>
+
+```bash Run the checklist
+cops release checklist
+```
+
+```bash JSON output
+cops release checklist --output json
+```
+
+```bash Markdown output for a release report
+cops release checklist --output markdown
+```
+
+</CodeGroup>
+
+```
+check                  status  details
+─────────────────────  ──────  ──────────────────────────────────────────────────
+changelog_unreleased   pass    CHANGELOG has Unreleased section
+verify_script          pass    npm run verify is configured
+pack_internal_script   pass    npm run pack:internal is configured
+ci_workflow            pass    .github/workflows/ci.yml found
+tarball_present        pass    Found my-tool-1.2.0.tgz
+distribution_steps     warn    After pack:internal, publish/share tarball and install with `npm i -g ./<tarball>`
+```
+
+<Note>
+  `cops release checklist` operates on the current working directory. Run it from the root of your project where `package.json` and `CHANGELOG.md` live.
+</Note>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run policy-based release gates.
+  </Card>
+  <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
+    Cross-product release readiness summary.
+  </Card>
+</Columns>

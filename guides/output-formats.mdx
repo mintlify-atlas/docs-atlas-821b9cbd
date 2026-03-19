@@ -1,0 +1,164 @@
+---
+title: "Output formats"
+description: "Choose between table, JSON, and Markdown output formats. Use JSON envelopes for automation and Markdown for reports."
+---
+
+Every data command in cops supports three output formats via the `--output` flag. The format you choose depends on how you intend to use the output.
+
+## Formats at a glance
+
+| Format | Flag | Best for |
+| --- | --- | --- |
+| Table | `--output table` (default) | Interactive use, quick human review |
+| JSON | `--output json` | Scripts, CI pipelines, AI tools, automation |
+| Markdown | `--output markdown` | Pasting into wikis, pull request descriptions, reports |
+
+## Table (default)
+
+Table is the default format when `--output` is not specified. It renders a bordered ASCII table with column headers derived from the data fields.
+
+```bash
+cops jira issue search --jql "project = ABC AND sprint in openSprints()"
+```
+
+Table cells are truncated to 80 characters to keep the output readable in a terminal. Newlines and tab characters within values are normalised to spaces.
+
+## JSON
+
+The `--output json` flag produces a stable **JSON envelope** suitable for scripting and automation.
+
+```bash
+cops jira release status \
+  --project IP \
+  --fixVersion 2026-04-17 \
+  --output json
+```
+
+### JSON envelope structure
+
+All JSON output follows the `JsonEnvelope` contract:
+
+```json
+{
+  "schemaVersion": "v1",
+  "command": "jira release status",
+  "generatedAt": "2026-04-17T10:00:00.000Z",
+  "count": 3,
+  "metadata": {
+    "project": "IP",
+    "fixVersion": "2026-04-17",
+    "released": false
+  },
+  "items": [
+    {
+      "key": "IP-101",
+      "summary": "Add rate limiting to API gateway",
+      "status": "Done",
+      "statusCategory": "Done",
+      "assignee": "jane.smith",
+      "priority": "High"
+    },
+    {
+      "key": "IP-102",
+      "summary": "Update deployment runbook",
+      "status": "In Progress",
+      "statusCategory": "In Progress",
+      "assignee": "bob.jones",
+      "priority": "Medium"
+    }
+  ]
+}
+```
+
+### Envelope fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `schemaVersion` | string | Always `"v1"` — stable across cops versions |
+| `command` | string | The command that produced this output |
+| `generatedAt` | string | ISO 8601 timestamp of when the output was generated |
+| `count` | number | Number of items in the `items` array |
+| `metadata` | object | Command-specific metadata (present on most commands) |
+| `items` | array | The actual result rows |
+
+<Note>
+`schemaVersion: "v1"` is stable. You can safely consume it in scripts, dashboards, or compliance workflows without worrying about breaking changes between cops versions.
+</Note>
+
+### Parsing JSON in scripts
+
+```bash
+# Extract all issue keys with jq
+cops jira release status \
+  --project IP \
+  --fixVersion 2026-04-17 \
+  --output json \
+  | jq '.items[].key'
+
+# Count items
+cops release repos discover \
+  --project my-service \
+  --fixVersion 2026-04-17 \
+  --output json \
+  | jq '.count'
+
+# Check if any blocking gates failed
+cops release check --all --project my-service --output json \
+  | jq '[.items[] | select(.blocking == true)] | length'
+```
+
+## Markdown
+
+The `--output markdown` flag renders a GitHub Flavored Markdown table. Pipe characters inside values are escaped.
+
+```bash
+cops bitbucket pr list \
+  --project MYTEAM \
+  --repo my-service \
+  --output markdown
+```
+
+Example output:
+
+```markdown
+| id | title | author | state | targetBranch |
+| --- | --- | --- | --- | --- |
+| 42 | feat: add retry logic | jane.smith | OPEN | release/2026-04-17 |
+| 41 | fix: null pointer in handler | bob.jones | OPEN | release/2026-04-17 |
+```
+
+Paste this directly into a Confluence page (using the Markdown macro), a GitHub PR description, or a Jira comment.
+
+## Using `--output` across commands
+
+The `--output` flag is available on all data commands:
+
+<CodeGroup>
+
+```bash Jira commands
+cops jira issue get ABC-123 --output json
+cops jira issue search --jql "project = ABC" --output markdown
+cops jira release status --project IP --fixVersion 2026-04-17 --output json
+```
+
+```bash Confluence commands
+cops confluence page get 123456 --output json
+cops confluence page search --cql "space = ENG" --output markdown
+```
+
+```bash Bitbucket commands
+cops bitbucket pr list --project MYTEAM --repo my-service --output json
+cops bitbucket branch list --project MYTEAM --repo my-service --output markdown
+```
+
+```bash Bamboo commands
+cops bamboo build latest --plan MYTEAM-PLAN --output json
+cops bamboo deploy env results --envId 1001 --output json
+```
+
+```bash Release commands
+cops release check --all --project my-service --output json
+cops release repos discover --project my-service --fixVersion 2026-04-17 --output json
+```
+
+</CodeGroup>

@@ -1,0 +1,99 @@
+---
+title: "cops bamboo build"
+description: "Get the latest Bamboo build result for a plan."
+---
+
+The `cops bamboo build` commands let you inspect Bamboo build results. They call the Bamboo REST API (`/rest/api/latest/result`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bamboo build latest" defaultOpen>
+
+    Get the latest build result for a Bamboo plan. If no build results are found, the command outputs a message indicating that no results exist and exits with code `0`.
+
+    **Alias:** `cops bamboo build last`
+
+    ## Usage
+
+    ```bash
+    cops bamboo build latest <planKey> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Description |
+    | --- | --- |
+    | `<planKey>` | Bamboo plan key (e.g. `PROJ-PLAN`). Required. |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `resultKey`, `state`, `lifecycle`, `startedAt`, `completedAt`
+
+    | Column | Description |
+    | --- | --- |
+    | `resultKey` | Unique build result key (e.g. `PROJ-PLAN-42`) |
+    | `state` | Build state: `Successful`, `Failed`, or `Unknown` |
+    | `lifecycle` | Build lifecycle state (e.g. `Finished`) |
+    | `startedAt` | ISO datetime the build started |
+    | `completedAt` | ISO datetime the build completed |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get latest build result
+    cops bamboo build latest PROJ-PLAN
+    ```
+
+    ```bash JSON output
+    cops bamboo build latest PROJ-PLAN --output json
+    ```
+
+    ```bash Use an alias
+    cops bamboo build last PROJ-PLAN
+    ```
+
+    ```bash Use a specific profile
+    cops bamboo build latest PROJ-PLAN --profile staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    resultKey      state       lifecycle  startedAt             completedAt
+    ─────────────  ──────────  ─────────  ────────────────────  ────────────────────
+    PROJ-PLAN-42   Successful  Finished   2026-03-19T10:00:00Z  2026-03-19T10:04:22Z
+    ```
+
+    <Note>
+      The command fetches the single most recent build result for the plan. Use `cops bamboo plan get` to check whether the plan is currently enabled and active.
+    </Note>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bamboo plan" icon="sitemap" href="/commands/bamboo/plan">
+    Fetch plan details and check plan status.
+  </Card>
+  <Card title="cops bamboo deploy" icon="rocket" href="/commands/bamboo/deploy">
+    Inspect deployment environments and recent results.
+  </Card>
+</Columns>

@@ -1,0 +1,193 @@
+---
+title: "cops release projects"
+description: "List, inspect, and migrate projects configured in cops.project.json."
+---
+
+The `cops release projects` commands let you manage the project configurations stored in `cops.project.json`. These commands are local operations — they read and write the config file and do not call any Atlassian APIs.
+
+<AccordionGroup>
+
+  <Accordion title="cops release projects list" defaultOpen>
+
+    List all projects configured in `cops.project.json`.
+
+    **Alias:** `cops release projects ls`
+
+    ## Usage
+
+    ```bash
+    cops release projects list [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    ## Output columns
+
+    `project`, `default`, `source`
+
+    | Column | Description |
+    | --- | --- |
+    | `project` | Project key |
+    | `default` | `true` when this is the default project |
+    | `source` | Config source: `projects` (multi-project map) or `release` (legacy top-level config) |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash List all projects
+cops release projects list
+    ```
+
+    ```bash JSON output
+cops release projects list --output json
+    ```
+
+    ```bash Use an alias
+cops release projects ls
+    ```
+
+    </CodeGroup>
+
+    ```
+    project     default  source
+    ──────────  ───────  ────────
+    my-service  true     projects
+    auth-lib    false    projects
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops release projects show">
+
+    Show the resolved release configuration for a project. Displays all connection details and the number of configured gates.
+
+    ## Usage
+
+    ```bash
+    cops release projects show [--project <key>] [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string">
+      Project key from the `projects` map. Defaults to `defaultProject` or the top-level `release` block.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    ## Output columns
+
+    `project`, `jiraProjectKey`, `jiraFixVersion`, `confluenceSpace`, `confluenceTitle`, `bitbucketProjectKey`, `bitbucketRepo`, `releaseBranch`, `bambooPlan`, `gateCount`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Show default project config
+cops release projects show
+    ```
+
+    ```bash Show a named project
+cops release projects show --project auth-lib
+    ```
+
+    ```bash JSON output
+cops release projects show --project my-service --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    project     jiraProjectKey  jiraFixVersion  confluenceSpace  bitbucketRepo  releaseBranch    bambooPlan  gateCount
+    ──────────  ──────────────  ──────────────  ───────────────  ─────────────  ───────────────  ──────────  ─────────
+    my-service  MYPROJ          2026-Q1         RELEASE          my-service     release/2026-Q1  PROJ-PLAN   5
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops release projects migrate">
+
+    Migrate a legacy `cops.project.json` (with a top-level `release` block) to the `projects`/`defaultProject` format. The migration wraps the existing `release` block under `projects.<projectId>` and sets `defaultProject`.
+
+    ## Usage
+
+    ```bash
+    cops release projects migrate [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--projectId" type="string" default="default">
+      Project ID to assign to the migrated legacy release configuration.
+    </ParamField>
+
+    <ParamField path="--dryRun" type="boolean" default="false">
+      Preview the migration without writing any changes to disk.
+    </ParamField>
+
+    <ParamField path="--backup" type="boolean" default="false">
+      Create a backup of `cops.project.json` at `cops.project.json.bak` before writing the migrated config.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    ## Output columns
+
+    `file`, `changed`, `dryRun`, `backupCreated`, `backupPath`, `details`
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | No migration was needed (config is already in projects format) |
+    | `2` | Migration was applied (changed) |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Preview the migration
+cops release projects migrate --dryRun
+    ```
+
+    ```bash Migrate with a backup
+cops release projects migrate --backup
+    ```
+
+    ```bash Migrate with a custom project ID
+cops release projects migrate --projectId my-service
+    ```
+
+    ```bash JSON output
+cops release projects migrate --dryRun --output json
+    ```
+
+    </CodeGroup>
+
+    <Warning>
+      This command overwrites `cops.project.json` in the current working directory. Use `--dryRun` to preview changes before applying, and `--backup` to keep a copy of the original.
+    </Warning>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run release gates for a configured project.
+  </Card>
+  <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
+    Cross-product release readiness summary.
+  </Card>
+</Columns>

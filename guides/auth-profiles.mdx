@@ -1,0 +1,177 @@
+---
+title: "Auth profiles"
+description: "Create, manage, and switch named auth profiles for Jira, Confluence, Bitbucket, and Bamboo connections."
+---
+
+Each auth profile stores the base URLs and credentials for one or more Atlassian Data Center products. A single profile can cover all four products (Jira, Confluence, Bitbucket, Bamboo) so you never have to specify connection details per-command.
+
+## Setting up your first profile
+
+<Steps>
+
+  <Step title="Run the interactive wizard">
+    ```bash
+    cops auth login
+    ```
+
+    The wizard prompts you for a profile name, then steps through each product. Enter `y` to configure a product, `n` to skip it.
+
+    ```
+    Profile name (e.g. dc-prod): dc-prod
+    Configure jira? (y/n): y
+      jira base URL (e.g. https://jira.company.com): https://jira.example.com
+      jira auth type [bearer/basic] (default: bearer): bearer
+      jira PAT/token: ••••••••
+    Configure confluence? (y/n): y
+      confluence base URL (e.g. https://confluence.company.com): https://confluence.example.com
+      confluence auth type [bearer/basic] (default: bearer): bearer
+      confluence PAT/token: ••••••••
+    Configure bitbucket? (y/n): y
+      bitbucket base URL (e.g. https://bitbucket.company.com): https://bitbucket.example.com
+      bitbucket auth type [bearer/basic] (default: bearer): bearer
+      bitbucket PAT/token: ••••••••
+    Configure bamboo? (y/n): n
+    Saved profile 'dc-prod' and set as current.
+    ```
+
+    The new profile is saved and set as the active profile automatically.
+  </Step>
+
+  <Step title="Verify the profile was saved">
+    ```bash
+    cops auth profiles
+    ```
+
+    The active profile is marked with an asterisk (`*`).
+  </Step>
+
+  <Step title="Run a command to confirm auth works">
+    ```bash
+    cops jira issue get ABC-123
+    ```
+
+    If credentials are correct, cops returns the issue details. If you see an authentication error, re-run `cops auth login` and provide new credentials.
+  </Step>
+
+</Steps>
+
+## Auth types
+
+cops supports two auth types per product. Choose the one that matches how your Atlassian Data Center instance is configured.
+
+<AccordionGroup>
+
+  <Accordion title="Bearer token (default)">
+    Sends your Personal Access Token (PAT) in the `Authorization: Bearer <pat>` header.
+
+    This is the recommended auth type for Atlassian Data Center. Generate a PAT in your Atlassian product under **Profile > Personal Access Tokens**.
+
+    Profile entry:
+    ```json
+    {
+      "baseUrl": "https://jira.example.com",
+      "authType": "bearer",
+      "pat": "<your-pat>"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Basic auth">
+    Sends your username and token as a Base64-encoded `Authorization: Basic <base64(username:token)>` header.
+
+    Use basic auth when your instance does not support PATs or when you need to authenticate with a service account username and password.
+
+    Profile entry:
+    ```json
+    {
+      "baseUrl": "https://jira.example.com",
+      "authType": "basic",
+      "username": "service-account",
+      "token": "<password-or-token>"
+    }
+    ```
+  </Accordion>
+
+</AccordionGroup>
+
+## Profile structure
+
+A profile is a named JSON object in `config.json`. Each product key (`jira`, `confluence`, `bitbucket`, `bamboo`) is optional — only configure the products you use.
+
+```json
+{
+  "name": "dc-prod",
+  "jira": {
+    "baseUrl": "https://jira.example.com",
+    "authType": "bearer",
+    "pat": "<jira-pat>"
+  },
+  "confluence": {
+    "baseUrl": "https://confluence.example.com",
+    "authType": "bearer",
+    "pat": "<confluence-pat>"
+  },
+  "bitbucket": {
+    "baseUrl": "https://bitbucket.example.com",
+    "authType": "basic",
+    "username": "deploy-bot",
+    "token": "<password>"
+  },
+  "bamboo": {
+    "baseUrl": "https://bamboo.example.com",
+    "authType": "bearer",
+    "pat": "<bamboo-pat>"
+  }
+}
+```
+
+## Where profiles are stored
+
+Profiles are persisted in a single `config.json` file inside the cops config directory:
+
+| Platform | Path |
+| --- | --- |
+| Linux / macOS | `~/.config/cops/config.json` |
+| Windows | `%APPDATA%\cops\config.json` |
+
+<Note>
+On Linux and macOS, cops automatically sets the file permissions to `0600` (owner read/write only) every time it writes the config. On Windows, rely on standard user directory ACLs to restrict access.
+</Note>
+
+## Managing profiles
+
+### List profiles
+
+```bash
+cops auth profiles
+```
+
+Shows all saved profiles and highlights the currently active one.
+
+### Switch the active profile
+
+```bash
+cops auth use dc-staging
+```
+
+All subsequent commands use the `dc-staging` profile until you switch again. Switching persists to `config.json`.
+
+### Delete a profile
+
+```bash
+cops auth delete dc-staging
+```
+
+Removes the profile permanently. If the deleted profile was active, cops automatically falls back to the first remaining profile (if any).
+
+### Log out (unset current profile)
+
+```bash
+cops auth logout
+```
+
+Clears the `currentProfile` pointer without deleting any profile. Subsequent commands will error until you run `cops auth use <name>` or `cops auth login` again.
+
+<Warning>
+Do not commit `config.json` to version control. It contains credentials in plain text. See [Security](/guides/security) for PAT rotation and permission guidance.
+</Warning>

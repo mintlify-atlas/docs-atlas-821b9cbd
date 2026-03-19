@@ -1,0 +1,191 @@
+---
+title: "cops bitbucket pr"
+description: "List Bitbucket pull requests and run release-branch readiness checks."
+---
+
+The `cops bitbucket pr` commands let you inspect pull requests and validate release-branch readiness. They call the Bitbucket REST API (`/rest/api/1.0`).
+
+<AccordionGroup>
+
+  <Accordion title="cops bitbucket pr list" defaultOpen>
+
+    List pull requests for a Bitbucket repository, filtered by state.
+
+    **Alias:** `cops bitbucket pr ls`
+
+    ## Usage
+
+    ```bash
+    cops bitbucket pr list --project <projectKey> --repo <repoSlug> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string" required>
+      Bitbucket project key (e.g. `MYPROJ`).
+    </ParamField>
+
+    <ParamField path="--repo" type="string" required>
+      Bitbucket repository slug (e.g. `my-service`).
+    </ParamField>
+
+    <ParamField path="--state" type="string" default="OPEN">
+      Pull request state filter. Accepted values: `OPEN`, `MERGED`, `DECLINED`.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="50">
+      Maximum number of pull requests to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `id`, `state`, `title`, `from`, `to`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash List open PRs
+    cops bitbucket pr list --project MYPROJ --repo my-service
+    ```
+
+    ```bash List merged PRs
+    cops bitbucket pr list --project MYPROJ --repo my-service --state MERGED
+    ```
+
+    ```bash List declined PRs with JSON output
+    cops bitbucket pr list --project MYPROJ --repo my-service --state DECLINED --output json
+    ```
+
+    ```bash Limit to 10 results
+    cops bitbucket pr list --project MYPROJ --repo my-service --limit 10
+    ```
+
+    ```bash Use an alias
+    cops bitbucket pr ls --project MYPROJ --repo my-service
+    ```
+
+    </CodeGroup>
+
+    ```
+    id   state  title                          from                   to
+    ───  ─────  ─────────────────────────────  ─────────────────────  ───────────────
+    47   OPEN   Add retry logic to auth client  feature/retry-auth     main
+    46   OPEN   Bump dependency versions        chore/dep-updates       main
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops bitbucket pr checks">
+
+    Run release-branch PR readiness checks. Verifies that the number of open pull requests targeting the release branch does not exceed a configured threshold, and that at least one PR has been merged into the release branch. Exits with code `1` if any check produces a `warn` result.
+
+    ## Usage
+
+    ```bash
+    cops bitbucket pr checks --project <projectKey> --repo <repoSlug> --releaseBranch <branch> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--project" type="string" required>
+      Bitbucket project key (e.g. `MYPROJ`).
+    </ParamField>
+
+    <ParamField path="--repo" type="string" required>
+      Bitbucket repository slug (e.g. `my-service`).
+    </ParamField>
+
+    <ParamField path="--releaseBranch" type="string" required>
+      Release branch name to check (e.g. `release/2026-06`).
+    </ParamField>
+
+    <ParamField path="--maxOpenToRelease" type="number" default="0">
+      Maximum number of open pull requests allowed to target the release branch. Exceeding this threshold produces a `warn` result.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `check`, `status`, `details`
+
+    Each row represents one check. The `status` value is `pass` or `warn`.
+
+    | Check | Description |
+    | --- | --- |
+    | `open_prs_to_release` | Number of open PRs targeting the release branch is within `--maxOpenToRelease` |
+    | `merged_prs_to_release` | At least one PR has been merged into the release branch |
+
+    ## Exit codes
+
+    | Code | Meaning |
+    | --- | --- |
+    | `0` | All checks passed |
+    | `1` | One or more checks produced `warn` |
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Run PR checks for a release branch
+    cops bitbucket pr checks --project MYPROJ --repo my-service --releaseBranch release/2026-06
+    ```
+
+    ```bash Allow up to 2 open PRs
+    cops bitbucket pr checks --project MYPROJ --repo my-service --releaseBranch release/2026-06 --maxOpenToRelease 2
+    ```
+
+    ```bash JSON output for CI
+    cops bitbucket pr checks --project MYPROJ --repo my-service --releaseBranch release/2026-06 --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    check                   status  details
+    ──────────────────────  ──────  ───────────────────────────────────────────────────────
+    open_prs_to_release     pass    0 open PR(s) targeting release/2026-06; threshold 0
+    merged_prs_to_release   pass    3 merged PR(s) targeting release/2026-06
+    ```
+
+    <Note>
+      The command fetches up to 500 open and 500 merged pull requests. For very active repositories, increase the per-page limit in the Bitbucket API or filter results more narrowly using `cops bitbucket pr list`.
+    </Note>
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops bitbucket branch" icon="git-branch" href="/commands/bitbucket/branch">
+    Check whether a release branch has been cut.
+  </Card>
+  <Card title="cops bitbucket commits" icon="git-commit" href="/commands/bitbucket/commits">
+    List commits and inspect build statuses.
+  </Card>
+</Columns>

@@ -1,0 +1,284 @@
+---
+title: "cops jira issue"
+description: "Fetch issue details, search by JQL, get sprint assignments, and view development activity for Jira issues."
+---
+
+The `cops jira issue` commands let you inspect individual Jira issues and search across your project. They call the Jira REST API v2 and the dev-status REST API.
+
+<AccordionGroup>
+
+  <Accordion title="cops jira issue get" defaultOpen>
+
+    Fetch full details for a single issue by its issue key.
+
+    **Alias:** `cops jira issue details`
+
+    ## Usage
+
+    ```bash
+    cops jira issue get <issueKey> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `issueKey` | Yes | Issue key, e.g. `ABC-123` |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `key`, `summary`, `status`, `type`, `assignee`, `reporter`, `fixVersions`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get an issue
+    cops jira issue get ABC-123
+    ```
+
+    ```bash JSON output
+    cops jira issue get ABC-123 --output json
+    ```
+
+    ```bash Use an alias
+    cops jira issue details ABC-123
+    ```
+
+    ```bash Override profile
+    cops jira issue get ABC-123 --profile dc-staging
+    ```
+
+    </CodeGroup>
+
+    ```
+    key      summary                          status       type    assignee        reporter       fixVersions
+    ───────  ───────────────────────────────  ───────────  ──────  ──────────────  ─────────────  ───────────
+    ABC-123  Allow users to reset password    In Progress  Story   Alice Example   Bob Example    2026-06-01
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops jira issue sprint">
+
+    Get the sprint that a specific issue is currently assigned to.
+
+    ## Usage
+
+    ```bash
+    cops jira issue sprint <issueKey> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `issueKey` | Yes | Issue key, e.g. `ABC-123` |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `issueKey`, `sprintId`, `sprintName`, `sprintState`, `startDate`, `endDate`
+
+    If the issue is not assigned to any sprint, the output is empty.
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get sprint assignment
+    cops jira issue sprint ABC-123
+    ```
+
+    ```bash JSON output
+    cops jira issue sprint ABC-123 --output json
+    ```
+
+    </CodeGroup>
+
+    ```
+    issueKey  sprintId  sprintName      sprintState  startDate   endDate
+    ────────  ────────  ──────────────  ───────────  ──────────  ──────────
+    ABC-123   42        Sprint 14       active       2026-03-10  2026-03-24
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops jira issue search">
+
+    Search for issues using a JQL query.
+
+    **Alias:** `cops jira issue find`
+
+    ## Usage
+
+    ```bash
+    cops jira issue search --jql <query> [flags]
+    ```
+
+    ## Flags
+
+    <ParamField path="--jql" type="string" required>
+      JQL query string. See [Jira documentation](https://support.atlassian.com/jira-software-cloud/docs/use-advanced-search-with-jira-query-language-jql/) for syntax.
+    </ParamField>
+
+    <ParamField path="--limit" type="number" default="20">
+      Maximum number of issues to return.
+    </ParamField>
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `key`, `summary`, `status`, `type`, `assignee`, `fixVersions`
+
+    A `Total:` line is printed below the table (suppressed in `--output json`).
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Search by assignee and status
+    cops jira issue search --jql "assignee = currentUser() AND status = 'In Progress'"
+    ```
+
+    ```bash Search with a higher result limit
+    cops jira issue search --jql "project = ABC AND fixVersion = 2026-06-01" --limit 100
+    ```
+
+    ```bash JSON output
+    cops jira issue search --jql "project = ABC" --output json
+    ```
+
+    ```bash Use an alias
+    cops jira issue find --jql "project = ABC AND priority = High"
+    ```
+
+    </CodeGroup>
+
+    ```
+    key      summary                          status       type    assignee       fixVersions
+    ───────  ───────────────────────────────  ───────────  ──────  ─────────────  ───────────
+    ABC-123  Allow users to reset password    In Progress  Story   Alice Example  2026-06-01
+    ABC-119  Add rate limiting to login API   To Do        Task    Bob Example    2026-06-01
+    ABC-101  Fix null pointer on search page  Done         Bug     Unassigned     2026-06-01
+    Total: 3
+    ```
+
+  </Accordion>
+
+  <Accordion title="cops jira issue dev-status">
+
+    Show a development activity summary for an issue: repositories, branches, pull requests, builds, deployments, and reviews.
+
+    **Alias:** `cops jira issue dev`
+
+    <Note>
+      This command calls the Jira dev-status REST API (`/rest/dev-status/1.0/issue/summary`), which requires a connected development tool integration (e.g. Bitbucket, Stash, or Bamboo) in your Jira instance.
+    </Note>
+
+    ## Usage
+
+    ```bash
+    cops jira issue dev-status <issueKey> [flags]
+    ```
+
+    ## Arguments
+
+    | Argument | Required | Description |
+    | --- | --- | --- |
+    | `issueKey` | Yes | Issue key, e.g. `ABC-123` |
+
+    ## Flags
+
+    <ParamField path="--output" type="string" default="table">
+      Output format: `table`, `json`, or `markdown`.
+    </ParamField>
+
+    <ParamField path="--insecure" type="boolean" default="false">
+      Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+    </ParamField>
+
+    <ParamField path="--profile" type="string">
+      Override the active config profile.
+    </ParamField>
+
+    ## Output columns
+
+    `issueKey`, `repositories`, `branches`, `pullRequests`, `buildsPassed`, `buildsFailed`, `deployments`, `reviews`
+
+    ## Examples
+
+    <CodeGroup>
+
+    ```bash Get development status
+    cops jira issue dev-status ABC-123
+    ```
+
+    ```bash JSON output
+    cops jira issue dev-status ABC-123 --output json
+    ```
+
+    ```bash Use an alias
+    cops jira issue dev ABC-123
+    ```
+
+    </CodeGroup>
+
+    ```
+    issueKey  repositories  branches  pullRequests  buildsPassed  buildsFailed  deployments  reviews
+    ────────  ────────────  ────────  ────────────  ────────────  ────────────  ───────────  ───────
+    ABC-123   1             2         1             4             0             1            1
+    ```
+
+  </Accordion>
+
+</AccordionGroup>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops jira board" icon="layout-dashboard" href="/commands/jira/board">
+    Find boards and inspect board configuration.
+  </Card>
+  <Card title="cops jira sprint" icon="list-checks" href="/commands/jira/sprint">
+    List sprints and fetch sprint issues.
+  </Card>
+</Columns>

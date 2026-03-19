@@ -1,0 +1,68 @@
+---
+title: "cops auth use"
+description: "Switch the active auth profile. All subsequent commands will use this profile's credentials."
+---
+
+`cops auth use` sets the named profile as the current active profile. The change is persisted to `config.json` immediately and applies to all subsequent cops commands in any terminal session.
+
+## Usage
+
+```bash
+cops auth use <profile>
+```
+
+## Arguments
+
+<ParamField query="profile" type="string" required>
+  The name of the profile to activate. Must match a profile that already exists. Run `cops auth profiles` to see available profile names.
+</ParamField>
+
+## Examples
+
+<CodeGroup>
+
+```bash Switch to a production profile
+cops auth use dc-prod
+```
+
+```bash Switch to a staging profile
+cops auth use dc-staging
+```
+
+</CodeGroup>
+
+## What "active" means
+
+The active profile is the default source of credentials for all cops commands that authenticate against an Atlassian product. Any command that supports the `--profile` flag can override this on a per-invocation basis without changing the active profile.
+
+The active profile name is stored in `config.json` under the `currentProfile` key:
+
+```json
+{
+  "currentProfile": "dc-prod",
+  "profiles": [
+    { "name": "dc-prod", "jira": { ... } },
+    { "name": "dc-staging", "jira": { ... } }
+  ]
+}
+```
+
+## Notes
+
+<Note>
+If the named profile does not exist, the command exits with an error. Check available profiles first with `cops auth profiles`.
+</Note>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops auth profiles" icon="list" href="/commands/auth/profiles">
+    List all configured profiles.
+  </Card>
+  <Card title="cops auth login" icon="key" href="/commands/auth/login">
+    Create a new profile.
+  </Card>
+  <Card title="cops auth logout" icon="log-out" href="/commands/auth/logout">
+    Unset the active profile.
+  </Card>
+</Columns>

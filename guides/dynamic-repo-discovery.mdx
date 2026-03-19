@@ -1,0 +1,204 @@
+---
+title: "Dynamic repo discovery"
+description: "Derive in-scope Bitbucket repositories automatically from Jira dev-status links, without maintaining a static repo list."
+---
+
+Dynamic repo discovery lets cops work out which Bitbucket repositories are in scope for a release by querying Jira's dev-status API for each in-scope issue. You do not need to maintain a static list of repos in `cops.project.json`.
+
+For each discovered issue, cops:
+1. Fetches Jira dev-status artifacts (branch links, pull requests, deployment details)
+2. Extracts `projectKey` / `repoSlug` pairs from those artifacts
+3. Validates each repository exists in Bitbucket
+4. Enriches each repo with `bambooPlans`, `deploymentEnvs`, and `deploymentLinks` counts from the Jira deployment detail
+
+## Choosing a scope
+
+<Tabs>
+
+  <Tab title="FixVersion scope">
+    Use a Jira fixVersion to select in-scope issues. This is the most common approach for planned releases.
+
+    ```bash
+    cops release repos discover \
+      --project my-service \
+      --fixVersion 2026-04-17 \
+      --issueTypes Story \
+      --insecure
+    ```
+
+    The command runs a JQL query of the form:
+    ```
+    project = <projectKey> AND fixVersion = "<fixVersion>" AND issuetype in ("Story")
+    ```
+
+    then calls the Jira dev-status API for each matching issue.
+
+    To run aggregate release checks across all discovered repos:
+
+    ```bash
+    cops release summary \
+      --project my-service \
+      --fixVersion 2026-04-17 \
+      --discover \
+      --insecure
+    ```
+  </Tab>
+
+  <Tab title="Sprint scope">
+    Use a Jira board or explicit sprint IDs to select in-scope issues. Useful for sprint-based teams or when fixVersions are not used.
+
+    **Board-driven (active or closed sprints):**
+
+    ```bash
+    cops release repos discover \
+      --project my-service \
+      --board 42 \
+      --sprintStates active,closed \
+      --issueTypes Story,Defect \
+      --insecure
+    ```
+
+    cops resolves all sprints matching the requested states from the board, then collects issues from each sprint.
+
+    **Explicit sprint IDs:**
+
+    ```bash
+    cops release repos discover \
+      --project my-service \
+      --sprintIds 12345,12346 \
+      --issueTypes Story \
+      --insecure
+    ```
+
+    To run aggregate release checks with sprint scope:
+
+    ```bash
+    cops release summary \
+      --project my-service \
+      --discover \
+      --discoverBoard 42 \
+      --discoverSprintStates active \
+      --insecure
+    ```
+  </Tab>
+
+</Tabs>
+
+## Discovery output
+
+Each discovered repository entry contains:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `projectKey` | string | Bitbucket project key |
+| `repoSlug` | string | Bitbucket repository slug |
+| `issueCount` | number | Number of in-scope issues linked to this repo |
+| `issueKeys` | string[] | Sorted list of linked issue keys |
+| `validatedInBitbucket` | boolean | Whether cops confirmed the repo exists via the Bitbucket API |
+| `source` | string | `dev-status` (extracted from structured JSON) or `dev-status-url` (extracted from URL patterns) |
+| `bambooPlans` | string[] | Bamboo plan keys discovered from Jira deployment artifacts |
+| `deploymentEnvironments` | string[] | Deployment environment identifiers discovered from Jira deployment artifacts |
+| `deploymentLinks` | number | Total count of deployment links seen for this repo's issues |
+
+Results are sorted by `issueCount` descending, so the most-referenced repositories appear first.
+
+### Example output (JSON)
+
+```bash
+cops release repos discover \
+  --project my-service \
+  --fixVersion 2026-04-17 \
+  --issueTypes Story \
+  --output json \
+  --insecure
+```
+
+```json
+{
+  "schemaVersion": "v1",
+  "command": "release repos discover",
+  "generatedAt": "2026-04-17T10:00:00.000Z",
+  "count": 2,
+  "metadata": {
+    "issueCount": 14,
+    "repoCount": 2,
+    "scopeMode": "fixVersion",
+    "totalBranchLinks": 18,
+    "totalPullRequestLinks": 6,
+    "totalDeploymentLinks": 4
+  },
+  "items": [
+    {
+      "projectKey": "MYTEAM",
+      "repoSlug": "my-service",
+      "issueCount": 11,
+      "issueKeys": ["IP-101", "IP-102", "IP-103"],
+      "validatedInBitbucket": true,
+      "source": "dev-status",
+      "bambooPlans": ["MYTEAM-PLAN"],
+      "deploymentEnvironments": ["Staging#1001", "Production#1002"],
+      "deploymentLinks": 3
+    },
+    {
+      "projectKey": "MYTEAM",
+      "repoSlug": "shared-lib",
+      "issueCount": 3,
+      "issueKeys": ["IP-104", "IP-105"],
+      "validatedInBitbucket": true,
+      "source": "dev-status",
+      "bambooPlans": [],
+      "deploymentEnvironments": [],
+      "deploymentLinks": 1
+    }
+  ]
+}
+```
+
+## Aggregate checks with `--discover`
+
+Adding `--discover` to `release summary` runs aggregate cross-repo checks on top of discovery:
+
+```bash
+cops release summary \
+  --project my-service \
+  --fixVersion 2026-04-17 \
+  --discover \
+  --insecure
+```
+
+The aggregate checks include:
+
+| Check | Description |
+| --- | --- |
+| Release branch existence | Each discovered repo has a branch matching `releaseBranch` from the project config |
+| Open PR threshold | Number of open PRs targeting the release branch is within the configured limit |
+| Latest build signal | The latest commit on the release branch has a passing build status |
+| Bamboo plan coverage | Proportion of discovered repos with at least one linked Bamboo plan |
+| Deployment environment coverage | Proportion of discovered repos with at least one linked deployment environment |
+
+<Tip>
+If a discovered repo's `bambooPlans` or `deploymentEnvironments` arrays are empty, it means cops found no deployment artifacts for that repo's issues in Jira. This is expected for repos that are not yet wired up to Bamboo deployments.
+</Tip>
+
+## Combining with filtering
+
+The `--issueTypes` flag accepts a comma-separated list and filters issues before dev-status lookup:
+
+```bash
+# Only Story and Bug issues contribute to repo discovery
+cops release repos discover \
+  --project my-service \
+  --fixVersion 2026-04-17 \
+  --issueTypes Story,Bug \
+  --insecure
+```
+
+The `--maxIssues` flag caps the total number of issues processed (default: 500) — useful for large fixVersions where you want a representative sample:
+
+```bash
+cops release repos discover \
+  --project my-service \
+  --fixVersion 2026-04-17 \
+  --maxIssues 100 \
+  --insecure
+```

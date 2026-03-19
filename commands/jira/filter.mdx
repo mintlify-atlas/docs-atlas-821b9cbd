@@ -1,0 +1,89 @@
+---
+title: "cops jira filter"
+description: "Retrieve a saved Jira filter and its JQL by filter ID."
+---
+
+The `cops jira filter` commands let you inspect saved filters stored in Jira. Filters are commonly referenced by board configurations — use `cops jira board config` to find the `filterId` associated with a board.
+
+## cops jira filter get
+
+Fetch the details of a saved Jira filter by its numeric ID.
+
+### Usage
+
+```bash
+cops jira filter get --filter <filterId> [flags]
+```
+
+### Flags
+
+<ParamField path="--filter" type="string" required>
+  Filter ID. You can find the filter ID in the URL of the filter in Jira, or via `cops jira board config`.
+</ParamField>
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Disable TLS certificate validation. Use only with self-signed certificates in trusted networks.
+</ParamField>
+
+<ParamField path="--profile" type="string">
+  Override the active config profile.
+</ParamField>
+
+### Output columns
+
+`id`, `name`, `owner`, `jql`
+
+### Examples
+
+<CodeGroup>
+
+```bash Get a filter by ID
+cops jira filter get --filter 10045
+```
+
+```bash JSON output
+cops jira filter get --filter 10045 --output json
+```
+
+```bash Markdown output
+cops jira filter get --filter 10045 --output markdown
+```
+
+```bash Override profile
+cops jira filter get --filter 10045 --profile dc-staging
+```
+
+</CodeGroup>
+
+```
+id     name                    owner          jql
+─────  ──────────────────────  ─────────────  ──────────────────────────────────────────────────────────────
+10045  Platform Team Filter    Alice Example  project = PLT AND sprint in openSprints() ORDER BY priority ASC
+```
+
+<Tip>
+  Combine `cops jira board config` with `cops jira filter get` to understand exactly which issues a board is tracking:
+
+  ```bash
+  # 1. Find the filter ID for a board
+  cops jira board config --board 14
+
+  # 2. Inspect the filter's JQL
+  cops jira filter get --filter 10045
+  ```
+</Tip>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="cops jira board" icon="layout-dashboard" href="/commands/jira/board">
+    Look up board IDs and retrieve the filter ID from board configuration.
+  </Card>
+  <Card title="cops jira issue search" icon="ticket" href="/commands/jira/issue">
+    Run a JQL query directly with `cops jira issue search`.
+  </Card>
+</Columns>
