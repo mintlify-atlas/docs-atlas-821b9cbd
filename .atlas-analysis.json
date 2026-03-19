@@ -1,0 +1,174 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "cops CLI",
+  "projectDescription": "A unified command-line interface for querying and orchestrating Atlassian Data Center products (Jira, Confluence, Bitbucket, Bamboo) with built-in release gate management and evidence generation.",
+  "theme": "aspen",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/auth-profiles",
+              "guides/configuration",
+              "guides/release-workflow",
+              "guides/dynamic-repo-discovery",
+              "guides/output-formats",
+              "guides/security"
+            ]
+          },
+          {
+            "group": "Release Gates",
+            "pages": [
+              "release-gates/overview",
+              "release-gates/gate-types",
+              "release-gates/evidence"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Command Reference",
+        "groups": [
+          {
+            "group": "Global",
+            "pages": [
+              "commands/init",
+              "commands/ask"
+            ]
+          },
+          {
+            "group": "Auth",
+            "pages": [
+              "commands/auth/login",
+              "commands/auth/profiles",
+              "commands/auth/use",
+              "commands/auth/logout",
+              "commands/auth/delete"
+            ]
+          },
+          {
+            "group": "Jira",
+            "pages": [
+              "commands/jira/overview",
+              "commands/jira/issue",
+              "commands/jira/board",
+              "commands/jira/sprint",
+              "commands/jira/release",
+              "commands/jira/filter"
+            ]
+          },
+          {
+            "group": "Confluence",
+            "pages": [
+              "commands/confluence/overview",
+              "commands/confluence/page"
+            ]
+          },
+          {
+            "group": "Bitbucket",
+            "pages": [
+              "commands/bitbucket/overview",
+              "commands/bitbucket/repo",
+              "commands/bitbucket/branch",
+              "commands/bitbucket/pr",
+              "commands/bitbucket/commits"
+            ]
+          },
+          {
+            "group": "Bamboo",
+            "pages": [
+              "commands/bamboo/overview",
+              "commands/bamboo/plan",
+              "commands/bamboo/build",
+              "commands/bamboo/deploy"
+            ]
+          },
+          {
+            "group": "Release",
+            "pages": [
+              "commands/release/overview",
+              "commands/release/check",
+              "commands/release/summary",
+              "commands/release/checklist",
+              "commands/release/repos-discover",
+              "commands/release/projects",
+              "commands/release/evidence"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Unified CLI for Jira, Confluence, Bitbucket, and Bamboo Data Center products",
+    "Local auth profile management with named profiles and easy switching",
+    "Declarative release gate system via cops.project.json",
+    "Release evidence generation, validation, diff, and trend analysis",
+    "Dynamic repo discovery from Jira dev-status links",
+    "Stable JSON output (schemaVersion v1) for automation and scripting",
+    "Table, JSON, and Markdown output formats for all data commands",
+    "Cross-product release readiness checks in a single command"
+  ],
+  "publicApiSurface": [
+    "cops auth login",
+    "cops auth profiles",
+    "cops auth use",
+    "cops auth logout",
+    "cops auth delete",
+    "cops jira issue get",
+    "cops jira issue search",
+    "cops jira issue dev-status",
+    "cops jira board lookup",
+    "cops jira board config",
+    "cops jira sprint active",
+    "cops jira sprint list",
+    "cops jira sprint issues",
+    "cops jira release status",
+    "cops jira filter get",
+    "cops confluence page get",
+    "cops confluence page content",
+    "cops confluence page by-title",
+    "cops confluence page search",
+    "cops confluence page freshness",
+    "cops confluence page checks",
+    "cops bitbucket repo get",
+    "cops bitbucket branch list",
+    "cops bitbucket branch exists",
+    "cops bitbucket commits list",
+    "cops bitbucket pr list",
+    "cops bitbucket pr checks",
+    "cops bitbucket commit build-status",
+    "cops bamboo plan get",
+    "cops bamboo build latest",
+    "cops bamboo deploy env get",
+    "cops bamboo deploy env results",
+    "cops init",
+    "cops release check",
+    "cops release summary",
+    "cops release checklist",
+    "cops release policy validate",
+    "cops release repos discover",
+    "cops release projects list",
+    "cops release projects show",
+    "cops release projects migrate",
+    "cops release evidence generate",
+    "cops release evidence validate",
+    "cops release evidence diff",
+    "cops release evidence trend",
+    "cops ask"
+  ]
+}
