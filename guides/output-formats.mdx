@@ -121,10 +121,10 @@ cops bitbucket pr list \
 Example output:
 
 ```markdown
-| id | title | author | state | targetBranch |
+| id | state | title | from | to |
 | --- | --- | --- | --- | --- |
-| 42 | feat: add retry logic | jane.smith | OPEN | release/2026-04-17 |
-| 41 | fix: null pointer in handler | bob.jones | OPEN | release/2026-04-17 |
+| 42 | OPEN | feat: add retry logic | feature/retry-logic | release/2026-04-17 |
+| 41 | OPEN | fix: null pointer in handler | fix/null-pointer | release/2026-04-17 |
 ```
 
 Paste this directly into a Confluence page (using the Markdown macro), a GitHub PR description, or a Jira comment.
@@ -153,7 +153,7 @@ cops bitbucket branch list --project MYTEAM --repo my-service --output markdown
 
 ```bash Bamboo commands
 cops bamboo build latest --plan MYTEAM-PLAN --output json
-cops bamboo deploy env results --envId 1001 --output json
+cops bamboo deploy env results --env 1001 --output json
 ```
 
 ```bash Release commands

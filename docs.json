@@ -121,6 +121,7 @@
               "commands/release/check",
               "commands/release/summary",
               "commands/release/checklist",
+              "commands/release/policy-validate",
               "commands/release/repos-discover",
               "commands/release/projects",
               "commands/release/evidence"

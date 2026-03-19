@@ -63,8 +63,24 @@ cops release summary [flags]
   Jira board ID for sprint-based discovery scope. When provided, the active sprint on this board determines the in-scope issues.
 </ParamField>
 
+<ParamField path="--discoverIssueTypes" type="string">
+  Comma-separated issue types for discovery scope (e.g. `Story,Defect`). Defaults to `Story`.
+</ParamField>
+
+<ParamField path="--discoverSprintIds" type="string">
+  Comma-separated sprint IDs to use as discovery scope (e.g. `101,102`).
+</ParamField>
+
 <ParamField path="--discoverSprintStates" type="string">
   Comma-separated sprint states for board-based discovery: `active`, `future`, `closed`. Defaults to `active`.
+</ParamField>
+
+<ParamField path="--discoverMaxIssues" type="number" default="500">
+  Maximum number of in-scope Jira issues to inspect for repo discovery.
+</ParamField>
+
+<ParamField path="--discoverMaxOpenToRelease" type="number" default="0">
+  Maximum allowed open PRs per discovered repo targeting the release branch.
 </ParamField>
 
 <ParamField path="--output" type="string" default="table">
@@ -112,8 +128,8 @@ When `--discover` is set, additional checks run across repos found via Jira dev-
 | Code | Meaning |
 | --- | --- |
 | `0` | All checks passed |
-| `1` | One or more checks failed or a blocking gate failed |
-| `2` | One or more checks produced a `warn` result |
+| `20` | One or more checks failed or a blocking gate failed |
+| `10` | One or more checks produced a `warn` result |
 
 ## Examples
 
@@ -155,11 +171,11 @@ bamboo      Latest build state                   pass    PROJ-PLAN-99: Successfu
 
 ## Related
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="cops release check" icon="shield-check" href="/commands/release/check">
     Run individual release gates with exit-code control.
   </Card>
   <Card title="cops release repos discover" icon="magnifying-glass" href="/commands/release/repos-discover">
     Discover repos from Jira dev-status links.
   </Card>
-</Columns>
+</CardGroup>

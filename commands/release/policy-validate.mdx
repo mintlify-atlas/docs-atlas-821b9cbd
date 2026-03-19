@@ -1,0 +1,88 @@
+---
+title: "cops release policy validate"
+description: "Validate the release gate configuration in cops.project.json before running gates."
+---
+
+`cops release policy validate` checks the release gate configuration in `cops.project.json` for structural errors before you run `cops release check`. Use it after editing `cops.project.json` to catch issues like duplicate gate IDs, unsupported gate types, invalid parameters, and expired waivers.
+
+## Usage
+
+```bash
+cops release policy validate [flags]
+```
+
+## Flags
+
+<ParamField path="--project" type="string">
+  Validate only the named project from the `projects` map. When omitted, all projects in the config are validated.
+</ParamField>
+
+<ParamField path="--output" type="string" default="table">
+  Output format: `table`, `json`, or `markdown`.
+</ParamField>
+
+## Output columns
+
+`project`, `check`, `status`, `details`
+
+| Check | Description |
+| --- | --- |
+| `gates_defined` | `pass` when at least one gate is configured; `warn` when no gates are defined |
+| `gate_id_unique` | `fail` when a gate ID is duplicated within a project |
+| `gate_type_supported` | `fail` when a gate type is not in the supported list |
+| `gate_schema` | `fail` when a gate is missing required params for its type |
+| `sla_hours_valid` | `fail` when `slaHours` is set to a non-positive value |
+| `owner_present_for_ticket` | `warn` when `ticket` is set but `owner` is missing |
+| `waiver_expiry_format` | `fail` when `waiverExpires` is not a valid ISO datetime |
+| `waiver_expiry_future` | `warn` when `waiverExpires` is in the past |
+| `waiver_expiry_present` | `warn` when `waiver` is set but `waiverExpires` is missing (waiver never expires) |
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | All checks passed |
+| `10` | One or more warnings found (e.g. no gates configured, expired waiver) |
+| `30` | One or more validation failures or `cops.project.json` not found |
+
+## Examples
+
+<CodeGroup>
+
+```bash Validate all projects
+cops release policy validate
+```
+
+```bash Validate a named project
+cops release policy validate --project my-service
+```
+
+```bash JSON output for CI
+cops release policy validate --output json
+```
+
+</CodeGroup>
+
+```
+project     check              status  details
+──────────  ─────────────────  ──────  ───────────────────────────────────
+my-service  gates_defined      pass    7 gates configured
+my-service  gate_id_unique     pass
+my-service  gate_type_supported pass
+my-service  gate_schema        pass
+```
+
+<Note>
+  Run `cops release policy validate` after editing `cops.project.json` and before running `cops release check` to catch configuration errors early without making API calls.
+</Note>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="cops release check" icon="shield-check" href="/commands/release/check">
+    Run the validated gates against live product APIs.
+  </Card>
+  <Card title="Configuration guide" icon="gear" href="/guides/configuration">
+    Full reference for cops.project.json structure and gate fields.
+  </Card>
+</CardGroup>

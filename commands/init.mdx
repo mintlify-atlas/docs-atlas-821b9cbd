@@ -103,11 +103,13 @@ After running `cops init --template backend-service`, the global config file con
         "requiredPlans": ["SRV-PLAN"]
       },
       "gates": [
-        { "id": "jira-stories",     "type": "jira-stories-exist",              "enabled": true, "severity": "high" },
-        { "id": "confluence-doc",   "type": "confluence-page-exists",          "enabled": true, "severity": "high" },
-        { "id": "release-branch",   "type": "bitbucket-release-branch-exists", "enabled": true, "severity": "high" },
-        { "id": "bamboo-plan",      "type": "bamboo-plan-active",              "enabled": true, "severity": "high" },
-        { "id": "bamboo-latest-build", "type": "bamboo-latest-build-success",  "enabled": true, "severity": "high" }
+        { "id": "jira-stories",              "type": "jira-stories-exist",              "enabled": true, "severity": "high" },
+        { "id": "confluence-doc",            "type": "confluence-page-exists",          "enabled": true, "severity": "high" },
+        { "id": "confluence-sections",       "type": "confluence-page-sections",        "enabled": true, "severity": "high", "params": { "requiredSections": ["Deployment Steps", "Rollback"] } },
+        { "id": "release-branch",            "type": "bitbucket-release-branch-exists", "enabled": true, "severity": "high" },
+        { "id": "bitbucket-open-pr-threshold", "type": "bitbucket-pr-checks",          "enabled": true, "severity": "medium", "params": { "maxOpenToRelease": 0 } },
+        { "id": "bamboo-plan",               "type": "bamboo-plan-active",              "enabled": true, "severity": "high" },
+        { "id": "bamboo-latest-build",       "type": "bamboo-latest-build-success",     "enabled": true, "severity": "high" }
       ]
     }
   }
@@ -126,11 +128,11 @@ cops release policy validate --project backend-service
 
 ## Related
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="Configuration" icon="settings" href="/guides/configuration">
     Full project config schema, gate fields, and precedence rules.
   </Card>
   <Card title="Release check" icon="shield-check" href="/commands/release/check">
     Run the gates defined in cops.project.json.
   </Card>
-</Columns>
+</CardGroup>

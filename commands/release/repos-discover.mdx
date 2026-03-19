@@ -108,8 +108,8 @@ cops release repos discover --board 42 --fixVersion 2026-Q1
 | Code | Meaning |
 | --- | --- |
 | `0` | Repos discovered and all in-scope issues have repo links |
-| `1` | No repos discovered |
-| `2` | Repos discovered but some in-scope issues are missing dev repo links |
+| `20` | No repos discovered |
+| `10` | Repos discovered but some in-scope issues are missing dev repo links |
 
 ## Examples
 
@@ -150,11 +150,11 @@ MYPROJ      auth-lib     6             true       dev-status  PROJ-AUTH
 
 ## Related
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
     Run summary with `--discover` to aggregate checks across discovered repos.
   </Card>
   <Card title="cops release check" icon="shield-check" href="/commands/release/check">
     Run release gates including Bitbucket and Bamboo checks.
   </Card>
-</Columns>
+</CardGroup>

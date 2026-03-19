@@ -37,7 +37,7 @@ cops release checklist [flags]
 | Code | Meaning |
 | --- | --- |
 | `0` | All checks passed |
-| `2` | One or more checks produced a `warn` result |
+| `10` | One or more checks produced a `warn` result |
 
 ## Recommended workflow
 
@@ -123,11 +123,11 @@ distribution_steps     warn    After pack:internal, publish/share tarball and in
 
 ## Related
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="cops release check" icon="shield-check" href="/commands/release/check">
     Run policy-based release gates.
   </Card>
   <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
     Cross-product release readiness summary.
   </Card>
-</Columns>
+</CardGroup>

@@ -78,8 +78,8 @@ The `cops release evidence` commands produce and inspect machine-readable releas
     | Code | Meaning |
     | --- | --- |
     | `0` | All gates passed (`overall: pass`) |
-    | `1` | At least one blocking gate failed (`overall: fail`) |
-    | `2` | At least one gate warned or was waived (`overall: warn`) |
+    | `20` | At least one blocking gate failed (`overall: fail`) |
+    | `10` | At least one gate warned or was waived (`overall: warn`) |
 
     ## Examples
 
@@ -154,7 +154,7 @@ cops release evidence generate --output json
     | Code | Meaning |
     | --- | --- |
     | `0` | All files passed validation |
-    | `1` | One or more files failed validation |
+    | `20` | One or more files failed validation |
 
     ## Validation rules (v1)
 
@@ -238,7 +238,7 @@ cops release evidence validate --dir output --output json
     | Code | Meaning |
     | --- | --- |
     | `0` | No differences found |
-    | `2` | One or more differences detected |
+    | `10` | One or more differences detected |
 
     ## Examples
 
@@ -301,8 +301,8 @@ cops release evidence diff --previous prev.json --current current.json --output 
     | Code | Meaning |
     | --- | --- |
     | `0` | Most recent evidence has no blocking gates and no warn/fail |
-    | `1` | Most recent evidence has one or more blocking gates |
-    | `2` | Most recent evidence has warn or fail gates (no blocking) |
+    | `20` | Most recent evidence has one or more blocking gates |
+    | `10` | Most recent evidence has warn or fail gates (no blocking) |
 
     ## Examples
 
@@ -340,11 +340,11 @@ cops release evidence trend --output json
 
 ## Related
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="cops release check" icon="shield-check" href="/commands/release/check">
     Run release gates and view gate evaluation details.
   </Card>
   <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
     Cross-product release readiness summary.
   </Card>
-</Columns>
+</CardGroup>

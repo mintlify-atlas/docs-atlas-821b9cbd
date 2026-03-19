@@ -12,6 +12,7 @@ The `cops release` command group provides release readiness, gating, and evidenc
 | `cops release check` | Run release gates defined in `cops.project.json` |
 | `cops release summary` | Cross-product release readiness summary |
 | `cops release checklist` | Operational release checklist for verify/pack/distribute workflow |
+| `cops release policy validate` | Validate release gate configuration in `cops.project.json` |
 | `cops release repos discover` | Discover release repos from Jira dev-status links |
 | `cops release projects list` | List projects configured in `cops.project.json` |
 | `cops release projects show` | Show resolved release configuration for a project |
@@ -32,6 +33,9 @@ The `cops release` command group provides release readiness, gating, and evidenc
   </Card>
   <Card title="cops release checklist" icon="list-check" href="/commands/release/checklist">
     Run the operational release checklist for verify, pack, and distribute steps.
+  </Card>
+  <Card title="cops release policy validate" icon="circle-check" href="/commands/release/policy-validate">
+    Validate release gate configuration in `cops.project.json` before running checks.
   </Card>
   <Card title="cops release repos discover" icon="magnifying-glass" href="/commands/release/repos-discover">
     Dynamically discover release repos from Jira dev-status links.

@@ -57,9 +57,9 @@ cops release check [flags]
 | Code | Meaning |
 | --- | --- |
 | `0` | All evaluated gates passed |
-| `1` | One or more gates are blocking (`fail` with high/critical severity or raw `fail`) |
-| `2` | One or more gates produced a non-blocking `warn` or `waived` result |
-| `3` | Configuration error (missing or invalid `cops.project.json`) |
+| `20` | One or more gates are blocking (`fail` with high/critical severity or raw `fail`) |
+| `10` | One or more gates produced a non-blocking `warn` or `waived` result |
+| `30` | Configuration error (missing or invalid `cops.project.json`) |
 
 <Note>
   A gate with severity `high` or `critical` that evaluates to `warn` is treated as blocking. Gates with severity `low` or `medium` that evaluate to `warn` are non-blocking. An active waiver changes the effective status to `waived` and clears the blocking flag regardless of severity.
@@ -117,11 +117,11 @@ branch-check         bitbucket-release-branch-exists  high  pass  false     Rele
 
 ## Related
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card title="cops release summary" icon="chart-bar" href="/commands/release/summary">
     Cross-product release readiness summary.
   </Card>
   <Card title="cops release evidence generate" icon="file-lines" href="/commands/release/evidence">
     Generate evidence artifacts from gate evaluations.
   </Card>
-</Columns>
+</CardGroup>
